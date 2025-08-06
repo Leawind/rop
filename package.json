@@ -1,5 +1,5 @@
 {
-	"name": "rop",
+	"name": "@leawind/rop",
 	"description": "Evaluate expression with operator overloading and Python-style array slicing using tagged template literal.",
 	"version": "0.0.1",
 	"license": "MIT",
