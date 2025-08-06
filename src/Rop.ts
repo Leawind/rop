@@ -197,12 +197,12 @@ export class Rop {
 	 *     return new Vec2(this.x + other.x, this.y + other.y);
 	 *   },
 	 *   // Normal function
-	 *   '*': function (this: Vec2, other: Vec2) {
-	 *     return new Vec2(this.x * other.x, this.y * other.y);
+	 *   '-': function (this: Vec2, other: Vec2) {
+	 *     return new Vec2(this.x - other.x, this.y - other.y);
 	 *   },
 	 *   // Arrow function
-	 *   '/': (self: Vec2, other: Vec2) => {
-	 *     return new Vec2(self.x / other.x, self.y / other.y);
+	 *   '==': (self: Vec2, other: Vec2) => {
+	 *     return self.x === other.x && self.y === other.y;
 	 *   },
 	 * })
 	 * ```
@@ -210,7 +210,7 @@ export class Rop {
 	 * @param clazz - The class to overload operations for
 	 * @param def - An object mapping operation names or symbols to their implementation functions
 	 */
-	public overloads<T>(clazz: Clazz, def: Partial<Record<OperationName | symbol, OperationFn<T>>>): Rop {
+	public overloads(clazz: Clazz, def: Partial<Record<OperationName | symbol, OperationFn<any>>>): Rop {
 		if (clazz.prototype === undefined) {
 			throw new TypeError('clazz must be a class');
 		}

@@ -146,8 +146,8 @@ describe('Quick Tutorial: Operation overloading', () => {
 				return new Vec2(this.x + other.x, this.y + other.y);
 			}
 
-			[Rop.op('*')](this: Vec2, other: Vec2) {
-				return new Vec2(this.x * other.x, this.y * other.y);
+			[Rop.op('-')](this: Vec2, other: Vec2) {
+				return new Vec2(this.x - other.x, this.y - other.y);
 			}
 		}
 
@@ -157,7 +157,7 @@ describe('Quick Tutorial: Operation overloading', () => {
 		expect(o<Vec2>`${a} + ${b}`).toEqual(new Vec2(6, 8));
 
 		// Any Rop instance can use this operator overloading.
-		expect(new Rop().o<Vec2>`${a} * ${b}`).toEqual(new Vec2(8, 15));
+		expect(new Rop().o<Vec2>`${a} - ${b}`).toEqual(new Vec2(-2, -2));
 	});
 
 	/**

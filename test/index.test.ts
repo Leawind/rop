@@ -32,13 +32,13 @@ describe('Rop operation overloading for custom types', () => {
 		const a = new Vec2(1, 2);
 		const b = new Vec2(3, 4);
 
-		rop.overload(Vec2, '/', (self: Vec2, other: Vec2) => new Vec2(self.x / other.x, self.y / other.y));
-		expect(rop.o<Vec2>`${a} / ${b}`).toEqual(new Vec2(a.x / b.x, a.y / b.y));
+		rop.overload(Vec2, '==', (self: Vec2, other: Vec2) => self.x === other.x && self.y === other.y);
+		expect(rop.o<Vec2>`${a} == ${b}`).toBeFalse();
 
-		rop.overload(Vec2, '*', function (this: Vec2, other: Vec2) {
-			return new Vec2(this.x * other.x, this.y * other.y);
+		rop.overload(Vec2, '-', function (this: Vec2, other: Vec2) {
+			return new Vec2(this.x - other.x, this.y - other.y);
 		});
-		expect(rop.o<Vec2>`${a} * ${b}`).toEqual(new Vec2(a.x * b.x, a.y * b.y));
+		expect(rop.o<Vec2>`${a} - ${b}`).toEqual(new Vec2(a.x - b.x, a.y - b.y));
 	});
 
 	test('should overload an existing type with `Rop.overloads`', () => {
@@ -51,16 +51,16 @@ describe('Rop operation overloading for custom types', () => {
 				return new Vec2(this.x + other.x, this.y + other.y);
 			},
 			// Arrow function
-			'/': (self: Vec2, other: Vec2) => {
-				return new Vec2(self.x / other.x, self.y / other.y);
+			'==': (self: Vec2, other: Vec2) => {
+				return self.x === other.x && self.y === other.y;
 			},
 			// Normal function
-			'*': function (this: Vec2, other: Vec2) {
-				return new Vec2(this.x * other.x, this.y * other.y);
+			'-': function (this: Vec2, other: Vec2) {
+				return new Vec2(this.x - other.x, this.y - other.y);
 			},
 		});
 		expect(rop.o<Vec2>`${a} + ${b}`).toEqual(new Vec2(a.x + b.x, a.y + b.y));
-		expect(rop.o<Vec2>`${a} * ${b}`).toEqual(new Vec2(a.x * b.x, a.y * b.y));
-		expect(rop.o<Vec2>`${a} / ${b}`).toEqual(new Vec2(a.x / b.x, a.y / b.y));
+		expect(rop.o<Vec2>`${a} - ${b}`).toEqual(new Vec2(a.x - b.x, a.y - b.y));
+		expect(rop.o<Vec2>`${a} == ${b}`).toBeFalse();
 	});
 });
