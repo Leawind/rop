@@ -14,7 +14,7 @@ import type {
 import { NodeType } from '../AstNode';
 import { Operations } from '../Operators';
 import { TokenType } from '../Token';
-import type { Token, InterpolationToken, ConstantToken } from '../Token';
+import type { Token, EmbeddedToken, ConstantToken } from '../Token';
 import { Rop } from '../../Rop';
 
 /**
@@ -69,8 +69,8 @@ export class Evaluater {
 
 	private evaluateValueNode(node: ValueNode): any {
 		const token = node.token as Token;
-		if (token.type === TokenType.Interpolation) {
-			return (token as InterpolationToken).value;
+		if (token.type === TokenType.Embedded) {
+			return (token as EmbeddedToken).value;
 		} else if (token.type === TokenType.Constant) {
 			return (token as ConstantToken).value;
 		}

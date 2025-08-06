@@ -8,7 +8,7 @@ describe('Parse single operand', () => {
 	test('should parse value', () => {
 		expect($ast`${123}`).toEqual({
 			type: NodeType.Value,
-			token: { type: TokenType.Interpolation, literal: '${}', value: 123 },
+			token: { type: TokenType.Embedded, literal: '${}', value: 123 },
 		});
 	});
 
@@ -111,7 +111,7 @@ describe('Parse property access', () => {
 	});
 	test('should parse property access of expression', () => {
 		expect($ast`(${'hey'} + '345').prop`).toEqual(
-			AstFactory.accessProperty(AstFactory.binary(AstFactory.interpolationValue('hey'), '+', AstFactory.constValue("'345'", '345')), 'prop'),
+			AstFactory.accessProperty(AstFactory.binary(AstFactory.embeddedValue('hey'), '+', AstFactory.constValue("'345'", '345')), 'prop'),
 		);
 	});
 });

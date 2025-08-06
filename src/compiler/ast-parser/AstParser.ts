@@ -257,7 +257,7 @@ export class AstParser extends TokenWalker {
 		}
 
 		switch (token.type) {
-			case TokenType.Interpolation:
+			case TokenType.Embedded:
 			case TokenType.Constant:
 				return { type: NodeType.Value, token };
 			case TokenType.Identifier:

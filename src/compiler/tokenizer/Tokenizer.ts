@@ -149,7 +149,7 @@ export class Tokenizer extends StringWalker {
 	 * Tokenize a template literal into tokens.
 	 *
 	 * @param strs - The template strings
-	 * @param args - The interpolated values
+	 * @param args - The embedded values
 	 * @returns An array of tokens
 	 *
 	 * ### Example
@@ -166,7 +166,7 @@ export class Tokenizer extends StringWalker {
 			let tokens: Token[] = [];
 			for (let i = 0; i < args.length; i++) {
 				tokens.push(...new Tokenizer(s.raw[i]).tokenize());
-				tokens.push(TokenFactory.interpolation(args[i]));
+				tokens.push(TokenFactory.embeddedValue(args[i]));
 			}
 			tokens.push(...this.tokenize(s.raw.at(-1)!));
 			return tokens;

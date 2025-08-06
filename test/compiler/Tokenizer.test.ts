@@ -19,8 +19,8 @@ describe('Tokenize single token', () => {
 	});
 
 	test('should tokenize single value', () => {
-		expect(Tokenizer.tokenize`${2}`).toEqual([TokenFactory.interpolation(2)]);
-		expect(Tokenizer.tokenize`${'hello'}`).toEqual([TokenFactory.interpolation('hello')]);
+		expect(Tokenizer.tokenize`${2}`).toEqual([TokenFactory.embeddedValue(2)]);
+		expect(Tokenizer.tokenize`${'hello'}`).toEqual([TokenFactory.embeddedValue('hello')]);
 	});
 
 	test('should tokenize single constant: number', () => {
@@ -115,19 +115,19 @@ describe('Tokenize single token', () => {
 describe('Tokenize expression', () => {
 	test('should tokenize value operation', () => {
 		expect(Tokenizer.tokenize`${2} ** (${6} + ${2})`).toEqual([
-			TokenFactory.interpolation(2),
+			TokenFactory.embeddedValue(2),
 			TokenFactory.operator('**'),
 			TokenFactory.punctuation('('),
-			TokenFactory.interpolation(6),
+			TokenFactory.embeddedValue(6),
 			TokenFactory.operator('+'),
-			TokenFactory.interpolation(2),
+			TokenFactory.embeddedValue(2),
 			TokenFactory.punctuation(')'),
 		]);
 	});
 
 	test('should tokenize value, number and bigint', () => {
 		expect(Tokenizer.tokenize`${123} + 456 * 32n`).toEqual([
-			TokenFactory.interpolation(123),
+			TokenFactory.embeddedValue(123),
 			TokenFactory.operator('+'),
 			TokenFactory.constant('456', 456),
 			TokenFactory.operator('*'),

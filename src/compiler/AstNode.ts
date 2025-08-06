@@ -1,5 +1,5 @@
 import { type BinaryOperationName, type UnaryOperationName } from './Operators';
-import { ConstantToken, InterpolationToken } from './Token';
+import { ConstantToken, EmbeddedToken as EmbeddedToken } from './Token';
 
 export enum NodeType {
 	Value = 'Value',
@@ -17,7 +17,7 @@ interface BaseAstNode<T extends NodeType> {
 }
 
 export interface ValueNode extends BaseAstNode<NodeType.Value> {
-	token: InterpolationToken | ConstantToken;
+	token: EmbeddedToken | ConstantToken;
 }
 
 export interface IdentifierNode extends BaseAstNode<NodeType.Identifier> {

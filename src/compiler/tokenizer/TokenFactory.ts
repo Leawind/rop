@@ -1,5 +1,5 @@
 import {
-	InterpolationToken,
+	EmbeddedToken,
 	TokenType,
 	WhitespaceToken,
 	OperatorToken,
@@ -26,8 +26,8 @@ export class TokenFactory {
 		return { type: TokenType.Operator, literal };
 	}
 
-	public static interpolation(value: unknown): InterpolationToken {
-		return { type: TokenType.Interpolation, literal: '${}', value };
+	public static embeddedValue(value: unknown): EmbeddedToken {
+		return { type: TokenType.Embedded, literal: '${}', value };
 	}
 
 	public static constant(literal: string, value: string | number | bigint): ConstantToken {

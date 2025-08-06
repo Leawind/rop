@@ -12,7 +12,7 @@ import {
 	IndexingNode,
 } from '../AstNode';
 import { type BinaryOperationName, type UnaryOperationName } from '../Operators';
-import { ConstantToken, InterpolationToken } from '../Token';
+import { ConstantToken, EmbeddedToken } from '../Token';
 import { TokenFactory } from '../tokenizer/TokenFactory';
 
 /**
@@ -24,12 +24,12 @@ import { TokenFactory } from '../tokenizer/TokenFactory';
 export class AstFactory {
 	private constructor() {}
 
-	public static value(token: InterpolationToken | ConstantToken): ValueNode {
+	public static value(token: EmbeddedToken | ConstantToken): ValueNode {
 		return { type: NodeType.Value, token };
 	}
 
-	public static interpolationValue(value: unknown): ValueNode {
-		return this.value(TokenFactory.interpolation(value));
+	public static embeddedValue(value: unknown): ValueNode {
+		return this.value(TokenFactory.embeddedValue(value));
 	}
 
 	public static constValue(literal: string, value: string | number | bigint): ValueNode;

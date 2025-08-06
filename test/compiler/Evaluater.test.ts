@@ -12,7 +12,7 @@ describe('Evaluater', () => {
 		expect($eval`'world'`).toBe('world');
 	});
 
-	test('should evaluate interpolated values', () => {
+	test('should evaluate embedded values', () => {
 		expect($eval`'Hello, ' + ${'world'} + '!'`).toBe('Hello, world!');
 		expect($eval`${Math}.sin(${Math}.PI / 2)`).toBe(1);
 	});

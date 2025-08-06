@@ -1,7 +1,7 @@
 export enum TokenType {
 	Whitespace = 'Whitespace',
 	Operator = 'Operator',
-	Interpolation = 'Interpolation',
+	Embedded = 'Embedded',
 	Constant = 'Constant',
 	Identifier = 'Identifier',
 	Punctuation = 'Punctuation',
@@ -12,7 +12,7 @@ interface BaseToken<T extends TokenType> {
 	literal: string;
 }
 
-export interface InterpolationToken extends BaseToken<TokenType.Interpolation> {
+export interface EmbeddedToken extends BaseToken<TokenType.Embedded> {
 	literal: '${}';
 	value: any;
 }
@@ -28,4 +28,4 @@ export interface OperatorToken extends BaseToken<TokenType.Operator> {}
 export interface IdentifierToken extends BaseToken<TokenType.Identifier> {}
 export interface WhitespaceToken extends BaseToken<TokenType.Whitespace> {}
 
-export type Token = WhitespaceToken | OperatorToken | InterpolationToken | ConstantToken | IdentifierToken | PunctuationToken;
+export type Token = WhitespaceToken | OperatorToken | EmbeddedToken | ConstantToken | IdentifierToken | PunctuationToken;
