@@ -1,3 +1,5 @@
+[中文](./README.zh.md) | **English**
+
 # rop (Runtime Operator Parser)
 
 `rop` is a TypeScript/JavaScript library that parses and evaluates expressions via [tagged template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates). It supports **operator overloading** for custom and built-in types, enabling custom behaviors for JS operators and **Python-style array slicing**.

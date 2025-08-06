@@ -1,3 +1,5 @@
+**中文** | [English](./README.md)
+
 # rop (运行时操作符解析器)
 
 `rop` 是一个通过[带标签的模板字面量语法](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates)解析和计算表达式的 TypeScript/JavaScript 库。它支持对自定义类型和内置类型的**操作符重载**，能够为 JS 操作符启用自定义行为，并支持**Python 风格的数组切片**。
