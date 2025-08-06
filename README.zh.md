@@ -1,5 +1,9 @@
 **中文** | [English](./README.md)
 
+[![GitHub License](https://img.shields.io/github/license/Leawind/rop?color=%2377f)](https://github.com/Leawind/rop)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Leawind/rop/ci.yml?branch=main&logo=github-actions&label=test)](https://github.com/Leawind/rop/actions/workflows/ci.yml)
+[![NPM Version](https://img.shields.io/npm/v/@leawind/rop?color=bc3433)](https://www.npmjs.com/package/@leawind/rop)
+
 # rop (Runtime Operator Parser)
 
 `rop` 是一个通过[带标签的模板字面量语法](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates)解析和计算表达式的 TypeScript/JavaScript 库。它支持对自定义类型和内置类型的**操作符重载**，能够为 JS 操作符启用自定义行为，并支持**Python 风格的数组切片**。
