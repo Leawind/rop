@@ -35,13 +35,13 @@ o`arr[::-1]`; // [5, 4, 3, 2, 1]
 o`${tensor}[2:5, 1:5, 4:7]`;
 ```
 
-### Builtin operator overload for Array
+### Operator overload for Array
 
 ```ts
 o`${[2, 3]} + ${[4, 5]}`; // [2, 3, 4, 5]
 ```
 
-### Operator overloading for built-in types
+### Operator overloading for `Set`
 
 ```ts
 Rop.INST.bind({
