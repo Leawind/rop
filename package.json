@@ -1,0 +1,43 @@
+{
+	"name": "rop",
+	"description": "Evaluate expression with operator overloading and Python-style array slicing using tagged template literal.",
+	"version": "0.0.1",
+	"license": "MIT",
+	"homepage": "https://github.com/Leawind/rop",
+	"bugs": "https://github.com/Leawind/rop/issues",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Leawind/rop.git"
+	},
+	"author": "Leawind <leawind@yeah.net>",
+	"type": "module",
+	"keywords": [
+		"typescript",
+		"javascript",
+		"operator",
+		"overload",
+		"override",
+		"parsing",
+		"rop"
+	],
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		"types": "./dist/index.d.ts",
+		"import": "./dist/index.js",
+		"require": "./dist/index.cjs"
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "bun run build.ts",
+		"fmt": "prettier \"**/*.{json,md,ts,yml,yaml}\" --write"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.1.10",
+		"bun-plugin-dts": "^0.3.0",
+		"prettier": "^3.6.2"
+	}
+}
