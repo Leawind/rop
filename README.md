@@ -12,6 +12,9 @@ Before reading the [Quick Tutorial](./test/quick-tutorial.test.ts), these exampl
 
 ```ts
 o`2 + 3`; // 5
+
+// Value embedding
+o`${2} + 3` // 5
 ```
 
 ### Array Slicing
