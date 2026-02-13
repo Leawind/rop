@@ -1,0 +1,84 @@
+{
+  "name": "@leawind/rop",
+  "version": "0.0.1",
+  "description": "Evaluate expression with operator overloading and Python-style array slicing using tagged template literal.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Leawind/rop.git"
+  },
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "tasks": {
+    "build-npm": "deno run -A scripts/build-npm.ts --",
+    "index": "deno run -A scripts/gen-index.ts -- src",
+    "test": "deno test --doc --parallel",
+    "check": "deno check src test",
+    "verify": "deno task index -c && deno fmt --check && deno lint && deno task test",
+    "prepare": "deno task verify && deno task build-npm && cd dist/npm && npm publish --dry-run"
+  },
+  "test": {
+    "include": [
+      "src/**/*.ts",
+      "test/**/*.test.ts"
+    ]
+  },
+  "publish": {
+    "exclude": [
+      ".github/",
+      "examples/",
+      "lab",
+      "scripts",
+      "test/",
+      ".gitattribute",
+      "CONTRIBUTING.md"
+    ]
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@^1"
+  },
+  "lint": {
+    "include": ["src/", "test/"],
+    "rules": {
+      "exclude": [
+        "ban-types",
+        "for-direction",
+        "no-empty-interface",
+        "no-explicit-any",
+        "no-inner-declarations",
+        "verbatim-module-syntax"
+      ]
+    }
+  },
+  "fmt": {
+    "bracePosition": "sameLine",
+    "indentWidth": 2,
+    "lineWidth": 150,
+    "newLineKind": "lf",
+    "nextControlFlowPosition": "sameLine",
+    "operatorPosition": "nextLine",
+    "proseWrap": "preserve",
+    "quoteProps": "asNeeded",
+    "semiColons": false,
+    "singleBodyPosition": "sameLine",
+    "useBraces": "always",
+    "useTabs": false,
+    "singleQuote": true,
+    "spaceAround": false,
+    "spaceSurroundingProperties": true,
+    "trailingCommas": "onlyMultiLine",
+    "typeLiteral.separatorKind": "semiColon",
+    "include": [
+      ".github/",
+      ".github/workflows/*.yaml",
+      "**/*.md",
+      "*.json",
+      "lab/",
+      "scripts/",
+      "src/",
+      "test/"
+    ],
+    "exclude": ["dist"]
+  }
+}

@@ -1,29 +1,29 @@
-import { expect, test } from 'bun:test';
-import { StringWalker } from '../../src/utils/StringWalker';
+import { assert, assertFalse, assertStrictEquals } from '@std/assert'
+import { StringWalker } from '../../src/utils/StringWalker.ts'
 
-test('StringWalker', () => {
-	const src = '(x ** 2 + y ** 2) ** 0.5';
-	const sw = new StringWalker(src);
+Deno.test('StringWalker', () => {
+  const src = '(x ** 2 + y ** 2) ** 0.5'
+  const sw = new StringWalker(src)
 
-	expect(sw.getSource()).toBe(src);
+  assertStrictEquals(sw.getSource(), src)
 
-	expect(sw.hasRemaining()).toBe(true);
+  assert(sw.hasRemaining())
 
-	expect(sw.peek(3)).toBe('(x ');
+  assertStrictEquals(sw.peek(3), '(x ')
 
-	expect(sw.next('(')).toBe('(');
-	expect(sw.next(/\w+/)![0]).toBe('x');
+  assertStrictEquals(sw.next('('), '(')
+  assertStrictEquals(sw.next(/\w+/)![0], 'x')
 
-	sw.next(/\s*/);
+  sw.next(/\s*/)
 
-	expect(sw.peek(2)).toBe('**');
-	expect(sw.peek('**')).toBe('**');
-	expect(sw.peek(/[^\w\s]+/)![0]).toBe('**');
+  assertStrictEquals(sw.peek(2), '**')
+  assertStrictEquals(sw.peek('**'), '**')
+  assertStrictEquals(sw.peek(/[^\w\s]+/)![0], '**')
 
-	sw.next(/\s*/);
+  sw.next(/\s*/)
 
-	expect(sw.next(/\d+/)![0]).toBe('2');
+  assertStrictEquals(sw.next(/\d+/)![0], '2')
 
-	sw.consume(sw.getRemaining().length);
-	expect(sw.hasRemaining()).toBe(false);
-});
+  sw.consume(sw.getRemaining().length)
+  assertFalse(sw.hasRemaining())
+})

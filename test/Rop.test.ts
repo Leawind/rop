@@ -1,114 +1,114 @@
-import { describe, expect, test } from 'bun:test';
-import { Rop } from '../src';
+import { assert, assertEquals, assertStrictEquals, assertThrows } from '@std/assert'
+import { Rop } from '../src/index.ts'
 
-describe('Rop Test', () => {
-	test('basic', () => {
-		const rop = new Rop().bind({ a: 1, b: 2 });
-		expect(rop.o<number>`a + b`).toBe(3);
-	});
+Deno.test('Rop Test', async (t) => {
+  await t.step('basic', () => {
+    const rop = new Rop().bind({ a: 1, b: 2 })
+    assertStrictEquals(rop.o<number>`a + b`, 3)
+  })
 
-	test('bind method with key-value pair', () => {
-		const rop = new Rop().bind('a', 1);
-		expect(rop.bindings.get('a')).toBe(1);
+  await t.step('bind method with key-value pair', () => {
+    const rop = new Rop().bind('a', 1)
+    assertStrictEquals(rop.bindings.get('a'), 1)
 
-		rop.bind('b', 'test');
-		expect(rop.bindings.get('b')).toBe('test');
-	});
+    rop.bind('b', 'test')
+    assertStrictEquals(rop.bindings.get('b'), 'test')
+  })
 
-	test('bind method chaining', () => {
-		const rop = new Rop()
-			.bind('a', 1)
-			.bind({ b: 2 })
-			.bind(new Map([['c', 3]]));
+  await t.step('bind method chaining', () => {
+    const rop = new Rop()
+      .bind('a', 1)
+      .bind({ b: 2 })
+      .bind(new Map([['c', 3]]))
 
-		expect(rop.bindings.size).toBe(3);
-		expect(rop.bindings.get('a')).toBe(1);
-		expect(rop.bindings.get('b')).toBe(2);
-		expect(rop.bindings.get('c')).toBe(3);
-	});
+    assertStrictEquals(rop.bindings.size, 3)
+    assertStrictEquals(rop.bindings.get('a'), 1)
+    assertStrictEquals(rop.bindings.get('b'), 2)
+    assertStrictEquals(rop.bindings.get('c'), 3)
+  })
 
-	test('unbind method', () => {
-		const rop = new Rop().bind({ a: 1, b: 2, c: 3 });
-		expect(rop.bindings.size).toBe(3);
+  await t.step('unbind method', () => {
+    const rop = new Rop().bind({ a: 1, b: 2, c: 3 })
+    assertStrictEquals(rop.bindings.size, 3)
 
-		rop.unbind('b');
-		expect(rop.bindings.size).toBe(2);
-		expect(rop.bindings.has('a')).toBe(true);
-		expect(rop.bindings.has('b')).toBe(false);
-		expect(rop.bindings.has('c')).toBe(true);
+    rop.unbind('b')
+    assertStrictEquals(rop.bindings.size, 2)
+    assert(rop.bindings.has('a'))
+    assert(!rop.bindings.has('b'))
+    assert(rop.bindings.has('c'))
 
-		rop.unbind('a', 'c');
-		expect(rop.bindings.size).toBe(0);
-	});
+    rop.unbind('a', 'c')
+    assertStrictEquals(rop.bindings.size, 0)
+  })
 
-	test('o template tag', () => {
-		const rop = new Rop().bind({ a: 10, b: 5 });
-		expect(rop.o<number>`a + b`).toBe(15);
-		expect(rop.o<number>`a - b`).toBe(5);
-		expect(rop.o<number>`a * b`).toBe(50);
-		expect(rop.o<boolean>`a > b`).toBe(true);
-	});
-});
+  await t.step('o template tag', () => {
+    const rop = new Rop().bind({ a: 10, b: 5 })
+    assertStrictEquals(rop.o<number>`a + b`, 15)
+    assertStrictEquals(rop.o<number>`a - b`, 5)
+    assertStrictEquals(rop.o<number>`a * b`, 50)
+    assert(rop.o<boolean>`a > b`)
+  })
+})
 
-describe('Rop builtin test', () => {
-	test('bindBuiltins', () => {
-		const rop = new Rop().bindDefaults().bindMaths();
-		expect(rop.o<boolean>`true`).toBe(true);
-		expect(rop.o<boolean>`false`).toBe(false);
-		expect(rop.o<any>`null`).toBe(null);
-		expect(rop.o<any>`undefined`).toBe(undefined);
-		expect(rop.o<number>`Infinity`).toBe(Infinity);
-		expect(rop.o<number>`-Infinity`).toBe(-Infinity);
-		expect(rop.o<number>`NaN`).toBe(NaN);
+Deno.test('Rop builtin test', async (t) => {
+  await t.step('bindBuiltins', () => {
+    const rop = new Rop().bindDefaults().bindMaths()
+    assert(rop.o<boolean>`true`)
+    assert(!rop.o<boolean>`false`)
+    assertStrictEquals(rop.o<any>`null`, null)
+    assertStrictEquals(rop.o<any>`undefined`, undefined)
+    assertStrictEquals(rop.o<number>`Infinity`, Infinity)
+    assertStrictEquals(rop.o<number>`-Infinity`, -Infinity)
+    assert(Number.isNaN(rop.o<number>`NaN`))
 
-		expect(rop.o<number>`sin(PI / 2)`).toBe(1);
-	});
+    assertStrictEquals(rop.o<number>`sin(PI / 2)`, 1)
+  })
 
-	test('overloadBuiltins', () => {
-		const rop = new Rop().overloadDefaults();
-		expect(rop.o<number[]>`${[3, 4]} + ${[5, 6]}`).toEqual([3, 4, 5, 6]);
-		expect(rop.o<string>`'a' * 3`).toBe('aaa');
-		expect(rop.o<string>`3 * 'b'`).toBe('bbb');
-		expect(rop.o<Set<number>>`${new Set([5, 6, 7])} + ${new Set([1, 2, 3])}`).toEqual(new Set([1, 2, 3, 5, 6, 7]));
-	});
+  await t.step('overloadBuiltins', () => {
+    const rop = new Rop().overloadDefaults()
+    assertEquals(rop.o<number[]>`${[3, 4]} + ${[5, 6]}`, [3, 4, 5, 6])
+    assertStrictEquals(rop.o<string>`'a' * 3`, 'aaa')
+    assertStrictEquals(rop.o<string>`3 * 'b'`, 'bbb')
+    assertEquals(rop.o<Set<number>>`${new Set([5, 6, 7])} + ${new Set([1, 2, 3])}`, new Set([1, 2, 3, 5, 6, 7]))
+  })
 
-	describe('Array slicing', () => {
-		const rop = new Rop().overloadDefaults();
-		rop.bind({ arr: [1, 2, 3, 4, 5, 6, 7, 8] });
+  await t.step('Array slicing', async (t) => {
+    const rop = new Rop().overloadDefaults()
+    rop.bind({ arr: [1, 2, 3, 4, 5, 6, 7, 8] })
 
-		test('should throw when step is 0', () => {
-			expect(() => rop.o`arr[::0]`).toThrow();
-		});
+    await t.step('should throw when step is 0', () => {
+      assertThrows(() => rop.o`arr[::0]`)
+    })
 
-		test('should get whole array', () => {
-			expect(rop.o<number[]>`arr[:]`).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
-			expect(rop.o<number[]>`arr[::]`).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
-			expect(rop.o<number[]>`arr[::1]`).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
-		});
+    await t.step('should get whole array', () => {
+      assertEquals(rop.o<number[]>`arr[:]`, [1, 2, 3, 4, 5, 6, 7, 8])
+      assertEquals(rop.o<number[]>`arr[::]`, [1, 2, 3, 4, 5, 6, 7, 8])
+      assertEquals(rop.o<number[]>`arr[::1]`, [1, 2, 3, 4, 5, 6, 7, 8])
+    })
 
-		test('should slice positive step', () => {
-			expect(rop.o<number[]>`arr[2:7]`).toEqual([3, 4, 5, 6, 7]);
-			expect(rop.o<number[]>`arr[2:7:1]`).toEqual([3, 4, 5, 6, 7]);
-			expect(rop.o<number[]>`arr[2:8:2]`).toEqual([3, 5, 7]);
-			expect(rop.o<number[]>`arr[2:8:2]`).toEqual([3, 5, 7]);
+    await t.step('should slice positive step', () => {
+      assertEquals(rop.o<number[]>`arr[2:7]`, [3, 4, 5, 6, 7])
+      assertEquals(rop.o<number[]>`arr[2:7:1]`, [3, 4, 5, 6, 7])
+      assertEquals(rop.o<number[]>`arr[2:8:2]`, [3, 5, 7])
+      assertEquals(rop.o<number[]>`arr[2:8:2]`, [3, 5, 7])
 
-			expect(rop.o<number[]>`arr[1:-2:2]`).toEqual([2, 4, 6]);
-			expect(rop.o<number[]>`arr[-2:]`).toEqual([7, 8]);
-		});
+      assertEquals(rop.o<number[]>`arr[1:-2:2]`, [2, 4, 6])
+      assertEquals(rop.o<number[]>`arr[-2:]`, [7, 8])
+    })
 
-		test('should slice negative step', () => {
-			expect(rop.o<number[]>`arr[::-1]`).toEqual([8, 7, 6, 5, 4, 3, 2, 1]);
+    await t.step('should slice negative step', () => {
+      assertEquals(rop.o<number[]>`arr[::-1]`, [8, 7, 6, 5, 4, 3, 2, 1])
 
-			expect(rop.o<number[]>`arr[5::-1]`).toEqual([6, 5, 4, 3, 2, 1]);
-			expect(rop.o<number[]>`arr[-2::-1]`).toEqual([7, 6, 5, 4, 3, 2, 1]);
-			expect(rop.o<number[]>`arr[-2::-2]`).toEqual([7, 5, 3, 1]);
+      assertEquals(rop.o<number[]>`arr[5::-1]`, [6, 5, 4, 3, 2, 1])
+      assertEquals(rop.o<number[]>`arr[-2::-1]`, [7, 6, 5, 4, 3, 2, 1])
+      assertEquals(rop.o<number[]>`arr[-2::-2]`, [7, 5, 3, 1])
 
-			expect(rop.o<number[]>`arr[:2:-1]`).toEqual([8, 7, 6, 5, 4]);
-			expect(rop.o<number[]>`arr[:-1:-1]`).toEqual([]);
-			expect(rop.o<number[]>`arr[:-4:-1]`).toEqual([8, 7, 6]);
+      assertEquals(rop.o<number[]>`arr[:2:-1]`, [8, 7, 6, 5, 4])
+      assertEquals(rop.o<number[]>`arr[:-1:-1]`, [])
+      assertEquals(rop.o<number[]>`arr[:-4:-1]`, [8, 7, 6])
 
-			expect(rop.o<number[]>`arr[6:2:-1]`).toEqual([7, 6, 5, 4]);
-			expect(rop.o<number[]>`arr[-2:3:-1]`).toEqual([7, 6, 5]);
-		});
-	});
-});
+      assertEquals(rop.o<number[]>`arr[6:2:-1]`, [7, 6, 5, 4])
+      assertEquals(rop.o<number[]>`arr[-2:3:-1]`, [7, 6, 5])
+    })
+  })
+})

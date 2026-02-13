@@ -1,4 +1,4 @@
-export type Clazz<T = any> = new (...args: any[]) => T;
+export type Clazz<T = any> = new (...args: any[]) => T
 
 /**
  * Three types of function:
@@ -7,26 +7,36 @@ export type Clazz<T = any> = new (...args: any[]) => T;
  * - **`arrow`** - `const fn = ()=>{}`
  * - **`method`** - `const fn = { m(){} }.m`
  */
-export type FunctionType = 'normal' | 'arrow' | 'method';
+export type FunctionType = 'normal' | 'arrow' | 'method'
 
-export function detectFunctionType(fn: any): FunctionType {
-	if (fn.hasOwnProperty('prototype')) {
-		return 'normal';
-	}
+export type AnyFunction<
+  Return = any,
+  Params extends any[] = any[],
+> = (...args: Params) => Return
 
-	const str = Function.prototype.toString.call(fn);
-	if (str.startsWith('(') || /^[^(),.=>{}[]]+\s*=>\s*\{/.test(str)) {
-		return 'arrow';
-	}
+export type Constructor<
+  Return = any,
+  Params extends any[] = any[],
+> = new (...args: Params) => Return
 
-	return 'method';
+export function detectFunctionType<F extends ((...args: any[]) => any) | (new (...args: any[]) => any)>(fn: F): FunctionType {
+  if (Object.prototype.hasOwnProperty.call(fn, 'prototype')) {
+    return 'normal'
+  }
+
+  const str = Function.prototype.toString.call(fn)
+  if (str.startsWith('(') || /^[^(),.=>{}[]]+\s*=>\s*\{/.test(str)) {
+    return 'arrow'
+  }
+
+  return 'method'
 }
 
 ////////////////////////////////
 // Slicing
 ////////////////////////////////
-export type Slice = { start?: any; end?: any; step?: any };
-export type SlicingFn<T = any, R = any> = (self: T, slices: Slice[]) => R;
+export type Slice = { start?: any; end?: any; step?: any }
+export type SlicingFn<T = any, R = any> = (self: T, slices: Slice[]) => R
 
 /**
  * @param index the zero-based index. A negative index will count back from the last item.
@@ -34,5 +44,5 @@ export type SlicingFn<T = any, R = any> = (self: T, slices: Slice[]) => R;
  * @returns the normalized index, may be out of range.
  */
 export function normalizeIndex(index: number, length: number): number {
-	return index < 0 ? index + length : index;
+  return index < 0 ? index + length : index
 }

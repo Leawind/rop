@@ -1,19 +1,19 @@
 import {
-	ValueNode,
-	IdentifierNode,
-	UnaryNode,
-	BinaryNode,
-	AccessPropertyNode,
-	SlicingNode,
-	InvokeNode,
-	NodeType,
-	AstNode,
-	NodeSlice,
-	IndexingNode,
-} from '../AstNode';
-import { type BinaryOperationName, type UnaryOperationName } from '../Operators';
-import { ConstantToken, EmbeddedToken } from '../Token';
-import { TokenFactory } from '../tokenizer/TokenFactory';
+  AccessPropertyNode,
+  AstNode,
+  BinaryNode,
+  IdentifierNode,
+  IndexingNode,
+  InvokeNode,
+  NodeSlice,
+  NodeType,
+  SlicingNode,
+  UnaryNode,
+  ValueNode,
+} from '../AstNode.ts'
+import { type BinaryOperationName, type UnaryOperationName } from '../Operators.ts'
+import { ConstantToken, EmbeddedToken } from '../Token.ts'
+import { TokenFactory } from '../tokenizer/TokenFactory.ts'
 
 /**
  * Factory class for creating AST nodes.
@@ -22,60 +22,60 @@ import { TokenFactory } from '../tokenizer/TokenFactory';
  * used in the parsing and evaluation process.
  */
 export class AstFactory {
-	private constructor() {}
+  private constructor() {}
 
-	public static value(token: EmbeddedToken | ConstantToken): ValueNode {
-		return { type: NodeType.Value, token };
-	}
+  public static value(token: EmbeddedToken | ConstantToken): ValueNode {
+    return { type: NodeType.Value, token }
+  }
 
-	public static embeddedValue(value: unknown): ValueNode {
-		return this.value(TokenFactory.embeddedValue(value));
-	}
+  public static embeddedValue(value: unknown): ValueNode {
+    return this.value(TokenFactory.embeddedValue(value))
+  }
 
-	public static constValue(literal: string, value: string | number | bigint): ValueNode;
+  public static constValue(literal: string, value: string | number | bigint): ValueNode
 
-	public static constValue(value: number | bigint): ValueNode;
+  public static constValue(value: number | bigint): ValueNode
 
-	public static constValue(...args: [literal: string, value: string | number | bigint] | [value: number | bigint]): ValueNode {
-		if (args.length === 1) {
-			const [value] = args;
-			switch (typeof value) {
-				case 'number':
-					return this.value(TokenFactory.constant(String(value), value));
-				case 'bigint':
-					return this.value(TokenFactory.constant(String(value) + 'n', value));
-			}
-		} else {
-			const [literal, value] = args;
-			return this.value(TokenFactory.constant(literal, value));
-		}
-	}
+  public static constValue(...args: [literal: string, value: string | number | bigint] | [value: number | bigint]): ValueNode {
+    if (args.length === 1) {
+      const [value] = args
+      switch (typeof value) {
+        case 'number':
+          return this.value(TokenFactory.constant(String(value), value))
+        case 'bigint':
+          return this.value(TokenFactory.constant(String(value) + 'n', value))
+      }
+    } else {
+      const [literal, value] = args
+      return this.value(TokenFactory.constant(literal, value))
+    }
+  }
 
-	static identifier(name: string): IdentifierNode {
-		return { type: NodeType.Identifier, name };
-	}
+  static identifier(name: string): IdentifierNode {
+    return { type: NodeType.Identifier, name }
+  }
 
-	static unary(operation: UnaryOperationName, operand: AstNode): UnaryNode {
-		return { type: NodeType.Unary, operation: operation, operand };
-	}
+  static unary(operation: UnaryOperationName, operand: AstNode): UnaryNode {
+    return { type: NodeType.Unary, operation: operation, operand }
+  }
 
-	static binary(left: AstNode, operation: BinaryOperationName, right: AstNode): BinaryNode {
-		return { type: NodeType.Binary, left, operation: operation, right };
-	}
+  static binary(left: AstNode, operation: BinaryOperationName, right: AstNode): BinaryNode {
+    return { type: NodeType.Binary, left, operation: operation, right }
+  }
 
-	static accessProperty(left: AstNode, name: string): AccessPropertyNode {
-		return { type: NodeType.AccessProperty, left, name };
-	}
+  static accessProperty(left: AstNode, name: string): AccessPropertyNode {
+    return { type: NodeType.AccessProperty, left, name }
+  }
 
-	static invoke(target: AstNode, args: AstNode[]): InvokeNode {
-		return { type: NodeType.Invoke, target, args: args };
-	}
+  static invoke(target: AstNode, args: AstNode[]): InvokeNode {
+    return { type: NodeType.Invoke, target, args: args }
+  }
 
-	static index(target: AstNode, index: AstNode): IndexingNode {
-		return { type: NodeType.Indexing, target, index };
-	}
+  static index(target: AstNode, index: AstNode): IndexingNode {
+    return { type: NodeType.Indexing, target, index }
+  }
 
-	static slice(target: AstNode, dims: NodeSlice[]): SlicingNode {
-		return { type: NodeType.Slicing, target, slices: dims };
-	}
+  static slice(target: AstNode, dims: NodeSlice[]): SlicingNode {
+    return { type: NodeType.Slicing, target, slices: dims }
+  }
 }

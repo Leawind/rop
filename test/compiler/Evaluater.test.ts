@@ -1,90 +1,90 @@
-import { describe, expect, test } from 'bun:test';
-import { $eval } from '../test-utils.test';
-import { Rop } from '../../src/Rop';
+import { assert, assertFalse, assertStrictEquals } from '@std/assert'
+import { $eval } from '../test-utils.test.ts'
+import { Rop } from '../../src/Rop.ts'
 
-describe('Evaluater', () => {
-	test('should evaluate constant values', () => {
-		expect($eval`42`).toBe(42);
-		expect($eval`299792458n`).toBe(299792458n);
-		expect($eval`3.14`).toBe(3.14);
-		expect($eval`31415e-4`).toBe(31415e-4);
-		expect($eval`"hello"`).toBe('hello');
-		expect($eval`'world'`).toBe('world');
-	});
+Deno.test('Evaluater', async (t) => {
+  await t.step('should evaluate constant values', () => {
+    assertStrictEquals($eval`42`, 42)
+    assertStrictEquals($eval`299792458n`, 299792458n)
+    assertStrictEquals($eval`3.14`, 3.14)
+    assertStrictEquals($eval`31415e-4`, 31415e-4)
+    assertStrictEquals($eval`"hello"`, 'hello')
+    assertStrictEquals($eval`'world'`, 'world')
+  })
 
-	test('should evaluate embedded values', () => {
-		expect($eval`'Hello, ' + ${'world'} + '!'`).toBe('Hello, world!');
-		expect($eval`${Math}.sin(${Math}.PI / 2)`).toBe(1);
-	});
+  await t.step('should evaluate embedded values', () => {
+    assertStrictEquals($eval`'Hello, ' + ${'world'} + '!'`, 'Hello, world!')
+    assertStrictEquals($eval`${Math}.sin(${Math}.PI / 2)`, 1)
+  })
 
-	test('should evaluate unary operators', () => {
-		expect($eval`!true`).toBe(false);
-		expect($eval`!false`).toBe(true);
-		expect($eval`~-1`).toBe(0);
-		expect($eval`-5`).toBe(-5);
-		expect($eval`+10`).toBe(10);
-	});
+  await t.step('should evaluate unary operators', () => {
+    assertFalse($eval`!true`)
+    assert($eval`!false`)
+    assertStrictEquals($eval`~-1`, 0)
+    assertStrictEquals($eval`-5`, -5)
+    assertStrictEquals($eval`+10`, 10)
+  })
 
-	test('should evaluate binary operators', () => {
-		expect($eval`1 + 2`).toBe(3);
-		expect($eval`5 - 3`).toBe(2);
-		expect($eval`4 * 3`).toBe(12);
-		expect($eval`10 / 2`).toBe(5);
-		expect($eval`10 % 3`).toBe(1);
-		expect($eval`2 ** 3`).toBe(8);
-		expect($eval`5 > 3`).toBe(true);
-		expect($eval`5 < 3`).toBe(false);
-		expect($eval`5 >= 5`).toBe(true);
-		expect($eval`5 <= 3`).toBe(false);
-		expect($eval`5 == 5`).toBe(true);
-		expect($eval`5 != 3`).toBe(true);
-		expect($eval`5 === 5`).toBe(true);
-		expect($eval`5 !== 3`).toBe(true);
-		expect($eval`true && true`).toBe(true);
-		expect($eval`true && false`).toBe(false);
-		expect($eval`false || true`).toBe(true);
-		expect($eval`false || false`).toBe(false);
-	});
+  await t.step('should evaluate binary operators', () => {
+    assertStrictEquals($eval`1 + 2`, 3)
+    assertStrictEquals($eval`5 - 3`, 2)
+    assertStrictEquals($eval`4 * 3`, 12)
+    assertStrictEquals($eval`10 / 2`, 5)
+    assertStrictEquals($eval`10 % 3`, 1)
+    assertStrictEquals($eval`2 ** 3`, 8)
+    assert($eval`5 > 3`)
+    assertFalse($eval`5 < 3`)
+    assert($eval`5 >= 5`)
+    assertFalse($eval`5 <= 3`)
+    assert($eval`5 == 5`)
+    assert($eval`5 != 3`)
+    assert($eval`5 === 5`)
+    assert($eval`5 !== 3`)
+    assert($eval`true && true`)
+    assertFalse($eval`true && false`)
+    assert($eval`false || true`)
+    assertFalse($eval`false || false`)
+  })
 
-	test('should evaluate operator precedence', () => {
-		expect($eval`1 + 2 * 3`).toBe(7);
-		expect($eval`(1 + 2) * 3`).toBe(9);
-		// Right associative
-		expect($eval`2 ** 3 ** 2`).toBe(512);
-		expect($eval`2 ** (3 ** 2)`).toBe(512);
-		expect($eval`(2 ** 3) ** 2`).toBe(64);
-	});
+  await t.step('should evaluate operator precedence', () => {
+    assertStrictEquals($eval`1 + 2 * 3`, 7)
+    assertStrictEquals($eval`(1 + 2) * 3`, 9)
+    // Right associative
+    assertStrictEquals($eval`2 ** 3 ** 2`, 512)
+    assertStrictEquals($eval`2 ** (3 ** 2)`, 512)
+    assertStrictEquals($eval`(2 ** 3) ** 2`, 64)
+  })
 
-	test('should evaluate function calls', () => {
-		expect($eval`${() => 3}()`).toBe(3);
-		expect($eval`min(1, 2)`).toBe(1);
-		expect($eval`max(1, 2, 3)`).toBe(3);
-	});
+  await t.step('should evaluate function calls', () => {
+    assertStrictEquals($eval`${() => 3}()`, 3)
+    assertStrictEquals($eval`min(1, 2)`, 1)
+    assertStrictEquals($eval`max(1, 2, 3)`, 3)
+  })
 
-	test('should evaluate array indexing', () => {
-		const arr = [10, 20, 30];
+  await t.step('should evaluate array indexing', () => {
+    const arr = [10, 20, 30]
 
-		expect($eval`${arr}[0]`).toBe(10);
-		expect($eval`${arr}[1]`).toBe(20);
-		expect($eval`${arr}[-1]`).toBe(30);
+    assertStrictEquals($eval`${arr}[0]`, 10)
+    assertStrictEquals($eval`${arr}[1]`, 20)
+    assertStrictEquals($eval`${arr}[-1]`, 30)
 
-		const obj = { key: 'value' };
-		expect($eval`${obj}["key"]`).toBe('value');
-	});
+    const obj = { key: 'value' }
+    assertStrictEquals($eval`${obj}["key"]`, 'value')
+  })
 
-	test('should evaluate object property access', () => {
-		const obj = { key: 'value' };
-		expect($eval`${obj}.key`).toBe('value');
-	});
-});
+  await t.step('should evaluate object property access', () => {
+    const obj = { key: 'value' }
+    assertStrictEquals($eval`${obj}.key`, 'value')
+  })
+})
 
-describe('Evaluater: search for binary operator overload', () => {
-	test('should find the overload', () => {
-		const rop = new Rop();
+Deno.test('Evaluater: search for binary operator overload', async (t) => {
+  await t.step('should find the overload', () => {
+    const rop = new Rop()
 
-		rop.overload(String, '*', (self: string, other: number) => self.repeat(other));
+    rop.overload(String, '*', (self: string, other: number) => self.repeat(other))
 
-		expect(rop.o<string>`'hey' * 3`).toBe('heyheyhey');
-		expect(rop.o<string>`3 * 'hey'`).toBe('heyheyhey');
-	});
-});
+    assertStrictEquals(rop.o<string>`'hey' * 3`, 'heyheyhey')
+    assertStrictEquals(rop.o<string>`3 * 'hey'`, 'heyheyhey')
+  })
+})

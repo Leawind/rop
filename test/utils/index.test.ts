@@ -1,46 +1,46 @@
-import { describe, expect, test } from 'bun:test';
+import { assertStrictEquals } from '@std/assert'
 
-import { detectFunctionType, normalizeIndex } from '../../src/utils';
+import { detectFunctionType, normalizeIndex } from '../../src/utils/index.ts'
 
-describe('Function Type', () => {
-	test('test detect function type', () => {
-		const obj = {
-			a: function () {},
-			b: () => {},
-			c() {},
-		};
+Deno.test('Function Type', async (t) => {
+  await t.step('test detect function type', () => {
+    const obj = {
+      a: function () {},
+      b: () => {},
+      c() {},
+    }
 
-		for (const f of [obj.a, obj.b, obj.c]) {
-			f.toString = () => 'Hello world!';
-		}
+    for (const f of [obj.a, obj.b, obj.c]) {
+      f.toString = () => 'Hello world!'
+    }
 
-		expect(detectFunctionType(obj.a)).toBe('normal');
-		expect(detectFunctionType(obj.b)).toBe('arrow');
-		expect(detectFunctionType(obj.c)).toBe('method');
-	});
+    assertStrictEquals(detectFunctionType(obj.a), 'normal')
+    assertStrictEquals(detectFunctionType(obj.b), 'arrow')
+    assertStrictEquals(detectFunctionType(obj.c), 'method')
+  })
 
-	test('test detect function type for special characters', () => {
-		const obj = {
-			甲: function (_a: string = '():?,;[]{}中a1$-_=>{', ..._args: any[]) {},
-			乙: (_a: any) => {},
-			['丙'](_a: string = '():?,;[]{}中a1$-_=>{', ..._args: any[]) {},
-		};
+  await t.step('test detect function type for special characters', () => {
+    const obj = {
+      甲: function (_a: string = '():?,;[]{}中a1$-_=>{', ..._args: any[]) {},
+      乙: (_a: any) => {},
+      ['丙'](_a: string = '():?,;[]{}中a1$-_=>{', ..._args: any[]) {},
+    }
 
-		for (const f of [obj.甲, obj.乙, obj.丙]) {
-			f.toString = () => 'Hello world!';
-		}
+    for (const f of [obj.甲, obj.乙, obj.丙]) {
+      f.toString = () => 'Hello world!'
+    }
 
-		expect(detectFunctionType(obj.甲)).toBe('normal');
-		expect(detectFunctionType(obj.乙)).toBe('arrow');
-		expect(detectFunctionType(obj.丙)).toBe('method');
-	});
-});
+    assertStrictEquals(detectFunctionType(obj.甲), 'normal')
+    assertStrictEquals(detectFunctionType(obj.乙), 'arrow')
+    assertStrictEquals(detectFunctionType(obj.丙), 'method')
+  })
+})
 
-describe('normalizeIndex', () => {
-	test('should normalize index', () => {
-		expect(normalizeIndex(0, 10)).toBe(0);
-		expect(normalizeIndex(-2, 10)).toBe(8);
-		expect(normalizeIndex(-10, 10)).toBe(0);
-		expect(normalizeIndex(10, 10)).toBe(10);
-	});
-});
+Deno.test('normalizeIndex', async (t) => {
+  await t.step('should normalize index', () => {
+    assertStrictEquals(normalizeIndex(0, 10), 0)
+    assertStrictEquals(normalizeIndex(-2, 10), 8)
+    assertStrictEquals(normalizeIndex(-10, 10), 0)
+    assertStrictEquals(normalizeIndex(10, 10), 10)
+  })
+})

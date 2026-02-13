@@ -1,92 +1,92 @@
-import { describe, expect, test } from 'bun:test';
-import { TokenWalker } from '../../src/utils/TokenWalker';
-import { TokenType, Token } from '../../src/compiler/Token';
-import { TokenFactory } from '../../src/compiler/tokenizer/TokenFactory';
+import { assert, assertEquals, assertFalse, assertObjectMatch, assertStrictEquals } from '@std/assert'
+import { TokenWalker } from '../../src/utils/TokenWalker.ts'
+import { Token, TokenType } from '../../src/compiler/Token.ts'
+import { TokenFactory } from '../../src/compiler/tokenizer/TokenFactory.ts'
 
-describe('TokenWalker', () => {
-	const testTokens: Token[] = [
-		TokenFactory.punctuation('('),
-		TokenFactory.identifier('x'),
-		TokenFactory.whitespace(' '),
-		TokenFactory.operator('**'),
-		TokenFactory.whitespace(' '),
-		TokenFactory.constant('2', 2),
-		TokenFactory.whitespace(' '),
-		TokenFactory.operator('+'),
-		TokenFactory.identifier('y'),
-		TokenFactory.whitespace(' '),
-		TokenFactory.operator('**'),
-		TokenFactory.whitespace(' '),
-		TokenFactory.constant('2', 2),
-		TokenFactory.punctuation(')'),
-	];
+Deno.test('TokenWalker', async (t) => {
+  const testTokens: Token[] = [
+    TokenFactory.punctuation('('),
+    TokenFactory.identifier('x'),
+    TokenFactory.whitespace(' '),
+    TokenFactory.operator('**'),
+    TokenFactory.whitespace(' '),
+    TokenFactory.constant('2', 2),
+    TokenFactory.whitespace(' '),
+    TokenFactory.operator('+'),
+    TokenFactory.identifier('y'),
+    TokenFactory.whitespace(' '),
+    TokenFactory.operator('**'),
+    TokenFactory.whitespace(' '),
+    TokenFactory.constant('2', 2),
+    TokenFactory.punctuation(')'),
+  ]
 
-	test('TokenWalker basicctionality', () => {
-		const tw = new TokenWalker(testTokens);
+  await t.step('TokenWalker basicctionality', () => {
+    const tw = new TokenWalker(testTokens)
 
-		expect(tw.getSource()).toEqual(testTokens);
-		expect(tw.isFinished()).toBe(false);
-		expect(tw.getCurrentPosition()).toBe(0);
-		expect(tw.hasRemaining()).toBe(true);
-	});
+    assertStrictEquals(tw.getSource(), testTokens)
+    assertFalse(tw.isFinished())
+    assertEquals(tw.getCurrentPosition(), 0)
+    assert(tw.hasRemaining())
+  })
 
-	test('TokenWalker peek', () => {
-		const tw = new TokenWalker(testTokens);
+  await t.step('TokenWalker peek', () => {
+    const tw = new TokenWalker(testTokens)
 
-		expect(tw.peek()).toEqual({ type: TokenType.Punctuation, literal: '(' });
-		expect(tw.peek(1)).toEqual({ type: TokenType.Identifier, literal: 'x' });
-		expect(tw.peek(0)).toEqual({ type: TokenType.Punctuation, literal: '(' });
-		expect(tw.peek(100)).toBeNull();
-		expect(tw.peek(-1)).toBeNull();
-	});
+    assertObjectMatch(tw.peek()!, { type: TokenType.Punctuation, literal: '(' })
+    assertObjectMatch(tw.peek(1)!, { type: TokenType.Identifier, literal: 'x' })
+    assertObjectMatch(tw.peek(0)!, { type: TokenType.Punctuation, literal: '(' })
+    assertEquals(tw.peek(100), null)
+    assertEquals(tw.peek(-1), null)
+  })
 
-	test('TokenWalker next', () => {
-		const tw = new TokenWalker(testTokens);
+  await t.step('TokenWalker next', () => {
+    const tw = new TokenWalker(testTokens)
 
-		expect(tw.next()).toEqual({ type: TokenType.Punctuation, literal: '(' });
-		expect(tw.getCurrentPosition()).toBe(1);
+    assertObjectMatch(tw.next()!, { type: TokenType.Punctuation, literal: '(' })
+    assertEquals(tw.getCurrentPosition(), 1)
 
-		expect(tw.next()).toEqual({ type: TokenType.Identifier, literal: 'x' });
-		expect(tw.getCurrentPosition()).toBe(2);
+    assertObjectMatch(tw.next()!, { type: TokenType.Identifier, literal: 'x' })
+    assertEquals(tw.getCurrentPosition(), 2)
 
-		const nextThree = tw.next(3);
-		expect(nextThree).toEqual([
-			{ type: TokenType.Whitespace, literal: ' ' },
-			{ type: TokenType.Operator, literal: '**' },
-			{ type: TokenType.Whitespace, literal: ' ' },
-		]);
-		expect(tw.getCurrentPosition()).toBe(5);
+    const nextThree = tw.next(3)
+    assertEquals(nextThree, [
+      { type: TokenType.Whitespace, literal: ' ' },
+      { type: TokenType.Operator, literal: '**' },
+      { type: TokenType.Whitespace, literal: ' ' },
+    ])
+    assertEquals(tw.getCurrentPosition(), 5)
 
-		const walkerAtEnd = new TokenWalker([]);
-		expect(walkerAtEnd.next()).toBeNull();
-		expect(walkerAtEnd.next(1)).toBeNull();
-	});
+    const walkerAtEnd = new TokenWalker([])
+    assertEquals(walkerAtEnd.next(), null)
+    assertEquals(walkerAtEnd.next(1), null)
+  })
 
-	test('TokenWalker skip', () => {
-		const tw = new TokenWalker(testTokens);
+  await t.step('TokenWalker skip', () => {
+    const tw = new TokenWalker(testTokens)
 
-		tw.skip();
-		expect(tw.getCurrentPosition()).toBe(1);
+    tw.skip()
+    assertStrictEquals(tw.getCurrentPosition(), 1)
 
-		tw.skip(3);
-		expect(tw.getCurrentPosition()).toBe(4);
+    tw.skip(3)
+    assertStrictEquals(tw.getCurrentPosition(), 4)
 
-		const walkerNearEnd = new TokenWalker([{ type: TokenType.Identifier, literal: 'x' }]);
-		walkerNearEnd.skip(5);
-		expect(walkerNearEnd.isFinished()).toBe(true);
-	});
+    const walkerNearEnd = new TokenWalker([{ type: TokenType.Identifier, literal: 'x' }])
+    walkerNearEnd.skip(5)
+    assert(walkerNearEnd.isFinished())
+  })
 
-	test('TokenWalker getRemaining', () => {
-		const tw = new TokenWalker(testTokens);
-		tw.skip(2);
+  await t.step('TokenWalker getRemaining', () => {
+    const tw = new TokenWalker(testTokens)
+    tw.skip(2)
 
-		const remaining = tw.getRemaining();
-		expect(remaining.length).toBe(testTokens.length - 2);
-		expect(remaining).toEqual(testTokens.slice(2));
+    const remaining = tw.getRemaining()
+    assertEquals(remaining.length, testTokens.length - 2)
+    assertEquals(remaining, testTokens.slice(2))
 
-		const walkerAtEnd = new TokenWalker(testTokens);
-		walkerAtEnd.skip(testTokens.length);
-		expect(walkerAtEnd.getRemaining()).toEqual([]);
-		expect(walkerAtEnd.hasRemaining()).toBe(false);
-	});
-});
+    const walkerAtEnd = new TokenWalker(testTokens)
+    walkerAtEnd.skip(testTokens.length)
+    assertEquals(walkerAtEnd.getRemaining(), [])
+    assertFalse(walkerAtEnd.hasRemaining())
+  })
+})
