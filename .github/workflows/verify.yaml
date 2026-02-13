@@ -1,0 +1,115 @@
+name: Verify
+
+on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    branches:
+      - 'main'
+
+permissions:
+  contents: read
+
+jobs:
+  check-index:
+    name: Check index
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.6.x
+
+      - name: Run check index
+        run: deno task index --check
+
+  check-format:
+    name: Check format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.6.x
+
+      - run: deno fmt --check
+
+  check-type:
+    name: Check type
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.6.x
+
+      - run: deno task check
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.6.x
+
+      - run: deno task test
+
+  dry-publish-jsr:
+    name: Dry publish to JSR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.6.x
+
+      - run: deno publish --dry-run
+
+  build-npm:
+    name: Build NPM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.6.x
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Build NPM Package
+        run: deno task build-npm
+
+      - name: Upload NPM build artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: npm-package
+          path: dist/npm/
+
+  dry-publish-npm:
+    name: Dry publish to NPM
+    needs:
+      - build-npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Download NPM build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+          path: dist/npm/
+
+      - name: Run dry publish to NPM
+        run: |
+          cd dist/npm
+          npm version patch --no-git-tag-version
+          npm publish --dry-run
