@@ -1,6 +1,6 @@
 {
   "name": "@leawind/rop",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Evaluate expression with operator overloading and Python-style array slicing using tagged template literal.",
   "repository": {
     "type": "git",
