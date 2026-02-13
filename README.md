@@ -10,7 +10,7 @@
 
 ## Usage examples
 
-Before reading the [Quick Tutorial](./test/quick-tutorial.test.ts), these examples below can help you understand what `rop` can do:
+Before reading the [Quick Tutorial](./test/quick-tutorial.test.ts), these examples below show what `rop` can do:
 
 ### Evaluate a simple expression
 

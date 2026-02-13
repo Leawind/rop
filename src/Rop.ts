@@ -286,8 +286,7 @@ export class Rop {
   ////////////////////////////////
 
   /**
-   * Bind built-in identifiers like `true`, `false`, `null`, `undefined`, `Infinity`, `NaN`,
-   * and all properties of the `Math` object.
+   * Bind built-in identifiers like `true`, `false`, `null`, `undefined`, `Infinity`, `NaN`
    */
   public bindDefaults(): Rop {
     return this.bind({
