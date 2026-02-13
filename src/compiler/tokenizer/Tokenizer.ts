@@ -154,7 +154,8 @@ export class Tokenizer extends StringWalker {
    *
    * ### Example
    * ```ts
-   * const tokens = Tokenizer.tokenize`a + ${b}`(strs, a);
+   * const b = 2;
+   * const tokens = Tokenizer.tokenize`a + ${b}`;
    * ```
    */
   public static tokenize(strs: TemplateStringsArray, ...args: unknown[]): Token[]

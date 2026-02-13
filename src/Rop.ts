@@ -190,6 +190,11 @@ export class Rop {
    * ### Examples
    *
    * ```ts
+   * class Vec2 {
+   *   constructor(public x: number, public y: number) {}
+   * }
+   *
+   * const rop = new Rop()
    * rop.overloads(Vec2, {
    *   // Method (Recommended style)
    *   '+'(this: Vec2, other: Vec2) {
