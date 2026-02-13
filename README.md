@@ -1,12 +1,12 @@
 [中文](./README.zh.md) | **English**
 
 [![GitHub License](https://img.shields.io/github/license/Leawind/rop?color=%2377f)](https://github.com/Leawind/rop)
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Leawind/rop/ci.yml?branch=main&logo=github-actions&label=test)](https://github.com/Leawind/rop/actions/workflows/ci.yml)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Leawind/rop/verify.yaml?branch=main&logo=github-actions&label=test)](https://github.com/Leawind/rop/actions/workflows/verify.yaml)
 [![NPM Version](https://img.shields.io/npm/v/@leawind/rop?color=bc3433)](https://www.npmjs.com/package/@leawind/rop)
 
 # rop (Runtime Operator Parser)
 
-`rop` is a TypeScript/JavaScript library that parses and evaluates expressions via [tagged template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates). It supports **operator overloading** for custom and built-in types, enabling custom behaviors for JS operators and **Python-style array slicing**.
+`rop` is a TypeScript/JavaScript library that can parses and evaluates expressions via [tagged template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates). It supports **operator overloading** for custom and built-in types, enabling custom behaviors for JS operators and **Python-style array slicing**.
 
 ## Usage examples
 
