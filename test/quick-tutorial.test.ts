@@ -1,15 +1,18 @@
-import { assert, assertEquals, assertFalse } from '@std/assert'
-import { o, Rop } from '../src/index.ts'
-
 /**
  * Quick Tutorial for rop - Runtime Operator Parsing
  *
  * This tutorial demonstrates the core concepts and basic usage of rop.
  *
- * rop is a TypeScript/JavaScript library for parsing and evaluating expressions
+ * `rop` is a TypeScript/JavaScript library for parsing and evaluating expressions
  * using tagged template literals. It supports operator overloading for custom
  * and built-in types, enabling custom behaviors for JS operators.
+ *
+ * @module
  */
+
+import { assert, assertEquals, assertFalse } from '@std/assert'
+import { o, Rop } from '../src/index.ts'
+
 Deno.test('Quick Tutorial: Basic Usage', async (t) => {
   /**
    * Basic Usage
