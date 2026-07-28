@@ -67,16 +67,18 @@ type OperationMeta =
     type: 'other'
   }
 
-const OPERATION_REGISTRY: Record<OperationName | symbol, OperationMeta> = ((obj: Record<string | symbol, PartialOperationMeta>) => {
+const OPERATION_REGISTRY: ReadonlyMap<OperationName | symbol, OperationMeta> = ((obj: Record<string, PartialOperationMeta>) => {
   for (const name of REVERSE_BINARY_OPERATOR_NAMES) {
     obj[name] = { type: 'other' }
   }
+  const registry = new Map<OperationName | symbol, OperationMeta>()
   for (const [name, meta] of Object.entries(obj) as [OperationName, OperationMeta][]) {
     meta.name = name
     meta.symbol = Symbol(name)
-    obj[meta.symbol] = meta
+    registry.set(name, meta)
+    registry.set(meta.symbol, meta)
   }
-  return obj as Record<OperationName | symbol, OperationMeta>
+  return registry
 })({
   // Indexing
   '[i]': { type: 'other' },
@@ -118,15 +120,21 @@ const OPERATION_REGISTRY: Record<OperationName | symbol, OperationMeta> = ((obj:
 ////////////////////////////////////////////////////////////////
 const OPERATOR_LITERAL_TO_NAME_MAP: Map<string, { unary?: UnaryOperationName; binary?: BinaryOperationName }> = (() => {
   const map = new Map<string, { unary?: UnaryOperationName; binary?: BinaryOperationName }>()
-  for (const [name, meta] of Object.entries(OPERATION_REGISTRY)) {
+  for (const [name, meta] of OPERATION_REGISTRY) {
+    if (typeof name !== 'string') {
+      continue
+    }
     switch (meta.type) {
       case 'unary':
       case 'binary': {
         const literal = meta.literal
-        if (!map.has(meta.literal)) {
-          map.set(literal, {})
+        const names = map.get(literal) ?? {}
+        if (meta.type === 'unary') {
+          names.unary = name as UnaryOperationName
+        } else {
+          names.binary = name as BinaryOperationName
         }
-        ;(map.get(literal) as any)[meta.type] = name
+        map.set(literal, names)
       }
     }
   }
@@ -142,7 +150,7 @@ export class Operations {
    * @param op Operation name or symbol
    */
   public static isKnownOperation(op: string | symbol): boolean {
-    return Object.hasOwn(OPERATION_REGISTRY, op)
+    return OPERATION_REGISTRY.has(op as OperationName | symbol)
   }
 
   public static unaryFromLiteral(literal: string): UnaryOperationName | null {
@@ -163,7 +171,7 @@ export class Operations {
   public static meta(op: OperationName): OperationMeta
   public static meta(op: string | symbol): OperationMeta | null
   public static meta(op: string | symbol): OperationMeta | null {
-    return Object.hasOwn(OPERATION_REGISTRY, op) ? OPERATION_REGISTRY[op as OperationName] : null
+    return OPERATION_REGISTRY.get(op as OperationName | symbol) ?? null
   }
 
   /**
@@ -181,6 +189,6 @@ export class Operations {
    */
   public static symbol(op: string | symbol): symbol | null
   public static symbol(op: string | symbol): symbol | null {
-    return Object.hasOwn(OPERATION_REGISTRY, op) ? OPERATION_REGISTRY[op as OperationName].symbol : null
+    return OPERATION_REGISTRY.get(op as OperationName | symbol)?.symbol ?? null
   }
 }
