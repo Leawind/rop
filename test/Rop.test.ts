@@ -1,5 +1,5 @@
 import { assert, assertEquals, assertStrictEquals, assertThrows } from '@std/assert'
-import { Rop } from '../src/index.ts'
+import { Rop, RopTypeError } from '../src/index.ts'
 
 Deno.test('Rop Test', async (t) => {
   await t.step('basic', () => {
@@ -54,6 +54,54 @@ Deno.test('Rop Test', async (t) => {
     const add = (a: number, b: number) => rop.o<number>`${a} + ${b}`
     assertStrictEquals(add(1, 2), 3)
     assertStrictEquals(add(20, 30), 50)
+  })
+
+  await t.step('compiles positional arguments and captured values', () => {
+    const rop = new Rop().overloadDefaults()
+    const x = Rop.arg<number>(0, 'x')
+    const y = Rop.arg<number>(1, 'y')
+    const captured = 4
+    const expression = rop.compile<[number, number], number>`${y} * ${captured} + ${x} + ${x}`
+
+    assertStrictEquals(expression(2, 3), 16)
+  })
+
+  await t.step('keeps compiled closures and live Rop state separate', () => {
+    const rop = new Rop().bind('offset', 1)
+    const x = Rop.arg<number>(0)
+    const make = (captured: number) => rop.compile<[number], number>`${x} + ${captured} + offset`
+    const first = make(10)
+    const second = make(20)
+
+    assertStrictEquals(first(2), 13)
+    assertStrictEquals(second(2), 23)
+    rop.bind('offset', 5)
+    assertStrictEquals(first(2), 17)
+  })
+
+  await t.step('distinguishes a missing argument from explicit undefined', () => {
+    const rop = new Rop()
+    const value = Rop.arg<undefined>(0, 'value')
+    const expression = rop.compile<[undefined], undefined>`${value}`
+
+    assertStrictEquals(expression(undefined), undefined)
+    const error = assertThrows(() => (expression as (...args: unknown[]) => unknown)(), RopTypeError)
+    assertEquals(error.span, { start: 0, end: 3 })
+    assert(error.message.includes("Argument 0 ('value') was not provided"))
+  })
+
+  await t.step('treats an argument placeholder nested in another value as a constant', () => {
+    const rop = new Rop()
+    const wrapped = { value: Rop.arg(0) }
+    const expression = rop.compile<[], typeof wrapped>`${wrapped}`
+    assertStrictEquals(expression(), wrapped)
+  })
+
+  await t.step('rejects conflicting names for one argument index', () => {
+    const rop = new Rop()
+    const first = Rop.arg(0, 'first')
+    const second = Rop.arg(0, 'second')
+    assertThrows(() => rop.compile`${first} + ${second}`, RopTypeError, 'conflicting names')
   })
 })
 

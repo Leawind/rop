@@ -13,8 +13,30 @@ import {
 import { Tokenizer } from './compiler/tokenizer/Tokenizer.ts'
 import { Clazz, normalizeIndex, Slice, sliceArray } from './utils/index.ts'
 import { AstNode } from './compiler/AstNode.ts'
+import { TokenType } from './compiler/Token.ts'
+import { RopTypeError } from './error.ts'
+import { SourceSpan } from './source.ts'
 
 type BoundOperation<R = unknown> = (...args: any[]) => R
+
+const ropArguments = new WeakSet<object>()
+
+/** A positional argument placeholder used by {@link Rop.compile}. */
+export interface RopArgument<T = unknown> {
+  readonly index: number
+  readonly name?: string
+  /** @internal Carries `T` for TypeScript without adding a runtime field. */
+  readonly __type?: T
+}
+
+/** A function produced by {@link Rop.compile}. */
+export type CompiledExpression<Args extends readonly unknown[], Result> = (...args: Args) => Result
+
+interface CachedTemplate {
+  source: string
+  ast: AstNode
+  embeddedSpans: readonly SourceSpan[]
+}
 
 export class Rop {
   /**
@@ -31,7 +53,7 @@ export class Rop {
    */
   public readonly bindings: Map<string, unknown> = new Map()
 
-  private static readonly templateCache = new WeakMap<TemplateStringsArray, { source: string; ast: AstNode }>()
+  private static readonly templateCache = new WeakMap<TemplateStringsArray, CachedTemplate>()
 
   public constructor() {}
 
@@ -47,15 +69,83 @@ export class Rop {
    * ```
    */
   public o<T = any>(strs: TemplateStringsArray, ...args: unknown[]): T {
+    const template = Rop.getTemplate(strs, args)
+    const result = new Evaluator(template.ast, this, template.source, args).evaluate<T>()
+    return result
+  }
+
+  /**
+   * Create a positional argument placeholder for {@link Rop.compile}.
+   *
+   * The optional type parameter is only used by TypeScript; it is not checked at runtime.
+   */
+  public static arg<T = unknown>(index: number, name?: string): RopArgument<T> {
+    if (!Number.isSafeInteger(index) || index < 0) {
+      throw new RangeError(`Argument index must be a non-negative safe integer, received ${index}`)
+    }
+    const argument = Object.freeze(name === undefined ? { index } : { index, name }) as RopArgument<T>
+    ropArguments.add(argument)
+    return argument
+  }
+
+  /**
+   * Compile an expression template into a reusable function.
+   *
+   * Ordinary interpolated values are captured now. Direct interpolations created by
+   * {@link Rop.arg} are read from the returned function's positional arguments.
+   */
+  public compile<Args extends readonly unknown[] = readonly unknown[], Result = unknown>(
+    strs: TemplateStringsArray,
+    ...values: unknown[]
+  ): CompiledExpression<Args, Result> {
+    const template = Rop.getTemplate(strs, values)
+    const namedArguments = new Map<number, string>()
+
+    for (let slot = 0; slot < values.length; slot++) {
+      const value = values[slot]
+      if (!Rop.isArgument(value) || value.name === undefined) {
+        continue
+      }
+      const previousName = namedArguments.get(value.index)
+      if (previousName !== undefined && previousName !== value.name) {
+        throw new RopTypeError(
+          template.source,
+          template.embeddedSpans[slot],
+          `Argument ${value.index} has conflicting names: '${previousName}' and '${value.name}'`,
+        )
+      }
+      namedArguments.set(value.index, value.name)
+    }
+
+    return ((...args: Args): Result => {
+      const embeddedValues = values.map((value, slot) => {
+        if (!Rop.isArgument(value)) {
+          return value
+        }
+        if (value.index >= args.length) {
+          const label = value.name === undefined ? `Argument ${value.index}` : `Argument ${value.index} ('${value.name}')`
+          throw new RopTypeError(template.source, template.embeddedSpans[slot], `${label} was not provided`)
+        }
+        return args[value.index]
+      })
+      return new Evaluator(template.ast, this, template.source, embeddedValues).evaluate<Result>()
+    }) as CompiledExpression<Args, Result>
+  }
+
+  private static isArgument(value: unknown): value is RopArgument {
+    return typeof value === 'object' && value !== null && ropArguments.has(value)
+  }
+
+  private static getTemplate(strs: TemplateStringsArray, values: readonly unknown[]): CachedTemplate {
     let template = Rop.templateCache.get(strs)
     if (template === undefined) {
       const source = Tokenizer.source(strs)
-      const tokens = Tokenizer.tokenize(strs, ...args)
-      template = { source, ast: new AstParser(tokens, source).parse() }
+      const tokens = Tokenizer.tokenize(strs, ...values)
+      const embeddedSpans = tokens.filter((token) => token.type === TokenType.Embedded).map((token) => token.span)
+      template = { source, ast: new AstParser(tokens, source).parse(), embeddedSpans }
       Rop.templateCache.set(strs, template)
     }
-    const result = new Evaluator(template.ast, this, template.source, args).evaluate<T>()
-    return result
+    return template
   }
 
   /**

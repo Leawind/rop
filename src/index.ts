@@ -1,6 +1,7 @@
 import { Rop } from './Rop.ts'
 
 export { Rop } from './Rop.ts'
+export type { CompiledExpression, RopArgument } from './Rop.ts'
 export * from './error.ts'
 export type { SourceSpan } from './source.ts'
 export type { BinaryOperationName, OperationName, ReverseBinaryOperationName, UnaryOperationName } from './compiler/Operators.ts'

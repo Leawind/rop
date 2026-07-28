@@ -26,6 +26,30 @@ o`2 + 3` // 5
 o`${2} + 3` // 5
 ```
 
+### 编译可复用表达式
+
+在模板插值中直接使用 `Rop.arg(index, name?)`，即可标记函数的位置参数：
+
+```ts
+const rop = new Rop().overloadDefaults()
+const x = Rop.arg<number>(0, 'x')
+const y = Rop.arg<number>(1, 'y')
+
+const calculate = rop.compile<[number, number], number>`${x} * 2 + ${y}`
+calculate(3, 4) // 10
+```
+
+参数索引可以重复或乱序出现。缺少参数时会抛出 `RopTypeError`；显式传入 `undefined` 仍视为提供了参数。`Rop.arg<T>()` 的泛型只用于 TypeScript 类型提示，不会在运行时校验类型。
+
+普通插值的值会在调用 `compile` 时捕获。绑定和操作符重载属于 `Rop` 实例，每次调用编译结果时都会重新查找：
+
+```ts
+const offset = 2
+const calculate = rop.compile<[number], number>`${x} + ${offset} + dynamicOffset`
+```
+
+只有直接作为插值传入的参数标记具有特殊含义。例如 `${{ value: x }}` 会把整个对象当作普通值捕获。
+
 ### 数组切片
 
 Python 风格的数组切片语法：
