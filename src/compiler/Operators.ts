@@ -23,10 +23,12 @@ const BINARY_OPERATOR_NAMES = [
   '<=',
   '>=',
 ] as const
-const OPERATOR_NAMES = ['[i]', '[:]', ...UNARY_OPERATOR_NAMES, ...BINARY_OPERATOR_NAMES] as const
 
 export type UnaryOperationName = (typeof UNARY_OPERATOR_NAMES)[number]
 export type BinaryOperationName = (typeof BINARY_OPERATOR_NAMES)[number]
+export type ReverseBinaryOperationName = `r${BinaryOperationName}`
+const REVERSE_BINARY_OPERATOR_NAMES = BINARY_OPERATOR_NAMES.map((name) => `r${name}` as ReverseBinaryOperationName)
+const OPERATOR_NAMES = ['[i]', '[:]', ...UNARY_OPERATOR_NAMES, ...BINARY_OPERATOR_NAMES, ...REVERSE_BINARY_OPERATOR_NAMES] as const
 export type OperationName = (typeof OPERATOR_NAMES)[number]
 
 export type UnaryOperationArrowFn<T = any, R = any> = ((self: T) => R) | (() => R)
@@ -63,7 +65,10 @@ type OperationMeta =
     type: 'other'
   }
 
-const OPERATION_REGISTRY: Record<OperationName | symbol, OperationMeta> = ((obj: Record<OperationName | symbol, PartialOperationMeta>) => {
+const OPERATION_REGISTRY: Record<OperationName | symbol, OperationMeta> = ((obj: Record<string | symbol, PartialOperationMeta>) => {
+  for (const name of REVERSE_BINARY_OPERATOR_NAMES) {
+    obj[name] = { type: 'other' }
+  }
   for (const [name, meta] of Object.entries(obj) as [OperationName, OperationMeta][]) {
     meta.name = name
     meta.symbol = Symbol(name)
@@ -144,6 +149,10 @@ export class Operations {
 
   public static binaryFromLiteral(literal: string): BinaryOperationName | null {
     return OPERATOR_LITERAL_TO_NAME_MAP.get(literal)?.binary || null
+  }
+
+  public static reverse(name: BinaryOperationName): ReverseBinaryOperationName {
+    return `r${name}`
   }
 
   /**

@@ -110,8 +110,23 @@ Deno.test('Evaluater: search for binary operator overload', async (t) => {
     const rop = new Rop()
 
     rop.overload(String, '*', (self: string, other: number) => self.repeat(other))
+    rop.overload(String, 'r*', (self: string, other: number) => self.repeat(other))
 
     assertStrictEquals(rop.o<string>`'hey' * 3`, 'heyheyhey')
     assertStrictEquals(rop.o<string>`3 * 'hey'`, 'heyheyhey')
+  })
+
+  await t.step('should only use an explicit reverse overload for the right operand', () => {
+    class Box {
+      public constructor(public value: number) {}
+    }
+    const rop = new Rop()
+    rop.overloads(Box, {
+      '-': (self: Box, other: number) => self.value - other,
+      'r-': (self: Box, other: number) => other - self.value,
+    })
+
+    assertStrictEquals(rop.o`${new Box(10)} - 3`, 7)
+    assertStrictEquals(rop.o`20 - ${new Box(6)}`, 14)
   })
 })

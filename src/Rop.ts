@@ -7,6 +7,7 @@ import {
   OperationFn,
   OperationName,
   Operations,
+  ReverseBinaryOperationName,
   UnaryOperationArrowFn,
   UnaryOperationName,
 } from './compiler/Operators.ts'
@@ -171,6 +172,7 @@ export class Rop {
    */
   public overload<T>(clazz: Clazz, operation: UnaryOperationName, operationFn: UnaryOperationArrowFn<T>): Rop
   public overload<T>(clazz: Clazz, operation: BinaryOperationName, operationFn: BinaryOperationArrowFn<T>): Rop
+  public overload<T>(clazz: Clazz, operation: ReverseBinaryOperationName, operationFn: BinaryOperationArrowFn<T>): Rop
   public overload<T>(clazz: Clazz, operation: symbol, operationFn: OperationFn<T>): Rop
   public overload<T>(clazz: Clazz, operation: OperationName | symbol, operationFn: OperationFn<T>): Rop
   public overload<T>(clazz: Clazz, op: OperationName | symbol, operationFn: OperationFn<T>): Rop {
@@ -223,7 +225,7 @@ export class Rop {
     for (const key of Reflect.ownKeys(def)) {
       const symbol = Operations.symbol(key)
       if (symbol === null) {
-        continue
+        throw new TypeError(`Unknown operation: ${String(key)}`)
       }
       const operationFn = def[key as keyof typeof def]!
       if (typeof operationFn !== 'function') {
@@ -384,7 +386,10 @@ export class Rop {
         return result
       },
     })
-    this.overloads(String, { '*': (self: string, n: number) => self.repeat(n) })
+    this.overloads(String, {
+      '*': (self: string, n: number) => self.repeat(n),
+      'r*': (self: string, n: number) => self.repeat(n),
+    })
     this.overloads(Set, {
       '+': (self: Set<unknown>, b: Set<unknown>) => new Set([...self, ...b]),
       '-': (self: Set<unknown>, b: Set<unknown>) => new Set([...self].filter((x) => !b.has(x))),

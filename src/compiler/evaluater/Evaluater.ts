@@ -125,7 +125,7 @@ export class Evaluater {
 
     const rightValue = this.evaluateNode(node.right)
 
-    const rightOverload = this.rop.getOverloadOnInstance(rightValue, meta.symbol)
+    const rightOverload = this.rop.getOverloadOnInstance(rightValue, Operations.symbol(Operations.reverse(node.operation)))
     if (typeof rightOverload === 'function') {
       return rightOverload.call(rightValue, leftValue)
     }
