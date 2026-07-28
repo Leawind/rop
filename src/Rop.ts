@@ -42,9 +42,10 @@ export class Rop {
    * ```
    */
   public o<T = any>(strs: TemplateStringsArray, ...args: unknown[]): T {
+    const source = Tokenizer.source(strs)
     const tokens = Tokenizer.tokenize(strs, ...args)
-    const ast = new AstParser(tokens).parse()
-    const result = new Evaluater(ast, this).evaluate<T>()
+    const ast = new AstParser(tokens, source).parse()
+    const result = new Evaluater(ast, this, source).evaluate<T>()
     return result
   }
 

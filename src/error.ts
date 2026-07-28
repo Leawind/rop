@@ -1,121 +1,111 @@
-class RopNeverError extends Error {
-  constructor(message: string) {
-    super(`RopNeverError: ${message}\nThis error is caused by a bug in Rop!`)
-  }
-}
+import { SourceSpan } from './source.ts'
+
+export type RopErrorCode =
+  | 'ROP_TOKENIZE'
+  | 'ROP_PARSE'
+  | 'ROP_REFERENCE'
+  | 'ROP_TYPE'
+  | 'ROP_EVALUATE'
+  | 'ROP_INTERNAL'
 
 export class CodeContext {
-  private lines: {
-    content: string
-    // 0-based index of row. Not line number!
-    row: number
-    /**
-     * 0-based index of the first character of the line in the source code
-     */
-    offset: number
-  }[]
-
   public constructor(
-    private source: string,
-    private begin: number,
-    private end: number = begin + 1,
+    public readonly source: string,
+    public readonly span: SourceSpan,
   ) {
-    if (begin < 0) {
-      throw new RopNeverError('begin < 0')
+    if (span.start < 0 || span.end < span.start || span.end > source.length) {
+      throw new RangeError(`Invalid source span [${span.start}, ${span.end}) for source of length ${source.length}`)
     }
-    if (end <= begin) {
-      throw new RopNeverError('end <= begin')
-    }
-    if (end > source.length) {
-      throw new RopNeverError('end > source.length')
-    }
-
-    this.lines = source.split('\n').reduce<typeof this.lines>((lines, content, row) => {
-      lines.push({
-        content,
-        row,
-        offset: lines.reduce((ofs, li) => ofs + li.content.length + 1, 0),
-      })
-      return lines
-    }, [])
   }
 
-  public toIndex(row: number, col: number): number {
-    let index = 0
-    for (let i = 0; i < row - 1; i++) {
-      index += this.lines[i]!.content.length + 1
-    }
-    return index + col
-  }
-  public toRowCol(index: number): [number, number] {
-    index = Math.min(Math.max(index, 0), this.source.length - 1)
+  public toRowCol(index: number): [row: number, column: number] {
+    const limit = Math.min(Math.max(index, 0), this.source.length)
     let row = 0
-    let col = 0
-    for (let i = 0; i < index; i++) {
+    let column = 0
+    for (let i = 0; i < limit; i++) {
       if (this.source[i] === '\n') {
         row++
-        col = 0
+        column = 0
       } else {
-        col++
+        column++
       }
     }
-    return [row, col]
+    return [row, column]
   }
 
-  public render(message: string = '', previousLineCount: number = 2) {
-    const [beginRow, beginCol] = this.toRowCol(this.begin)
-    const [endRow, endCol] = this.toRowCol(this.end)
+  public render(message = '', previousLineCount = 2, color = false): string {
+    const [beginRow, beginColumn] = this.toRowCol(this.span.start)
+    const [endRow, endColumn] = this.toRowCol(this.span.end)
+    const lines = this.source.split('\n')
+    const firstRow = Math.max(0, beginRow - previousLineCount)
+    const lastRow = Math.min(lines.length - 1, endRow)
+    const lineNumberWidth = String(lastRow + 1).length
+    const red = color ? '\x1b[31m\x1b[1m' : ''
+    const reset = color ? '\x1b[0m' : ''
+    let result = ''
 
-    const lineNumberWidth = endRow.toString().length
-    const renderedLines = this.lines.slice(beginRow - previousLineCount, endRow + 1)
-
-    let result = '\x1b[0m'
-    for (const line of renderedLines) {
-      // line number
-      result += `\x1b[1m`
-      const lineNumberStr = `${(1 + line.row).toString().padStart(lineNumberWidth, ' ')} | `
-      result += lineNumberStr
-      result += `\x1b[0m`
-
-      //  line content
-      result += line.content
-      result += '\n'
-
-      // If this line contains error
-      if (beginRow <= line.row && line.row <= endRow) {
-        result += ' '.repeat(lineNumberStr.length)
-
-        const left = line.row === beginRow ? beginCol : 0
-        const right = line.row === endRow ? endCol : line.content.length
-
-        result += line.content.substring(0, left).replace(/[^\t]/g, ' ')
-
-        result += '\x1b[31m\x1b[1m'
-        result += line.content.substring(left, right).replace(/[^\t]/g, '^')
-        result += '\x1b[0m'
-
-        result += '\n'
+    for (let row = firstRow; row <= lastRow; row++) {
+      const content = lines[row] ?? ''
+      const prefix = `${String(row + 1).padStart(lineNumberWidth, ' ')} | `
+      result += `${prefix}${content}\n`
+      if (beginRow <= row && row <= endRow) {
+        const left = row === beginRow ? beginColumn : 0
+        const right = row === endRow ? endColumn : content.length
+        const width = Math.max(1, right - left)
+        const indentation = content.slice(0, left).replace(/[^\t]/g, ' ')
+        result += `${' '.repeat(prefix.length)}${indentation}${red}${'^'.repeat(width)}${reset}\n`
       }
     }
-    if (message) {
-      result += `\x1b[31m${message}\x1b[0m\n`
-    }
-
-    return result
+    return message ? `${result}${red}${message}${reset}\n` : result
   }
 }
 
-class RopSyntaxError extends Error {
-  protected constructor(
-    protected context: CodeContext,
-    reason: string,
+export class RopError extends Error {
+  public readonly context: CodeContext
+
+  public constructor(
+    message: string,
+    public readonly code: RopErrorCode,
+    public readonly source: string,
+    public readonly span: SourceSpan,
+    options?: ErrorOptions,
   ) {
-    super(`\x1b[91mROP Syntax Error:\n${context.render(reason)}`)
+    super(message, options)
+    this.name = new.target.name
+    this.context = new CodeContext(source, span)
+  }
+
+  public format(options: { color?: boolean; previousLineCount?: number } = {}): string {
+    return `${this.name} [${this.code}]:\n${this.context.render(this.message, options.previousLineCount, options.color)}`
   }
 }
 
-export class TokenizingError extends RopSyntaxError {
-  public constructor(context: CodeContext, reason: string) {
-    super(context, reason)
+export class TokenizingError extends RopError {
+  public constructor(source: string, span: SourceSpan, reason: string) {
+    super(reason, 'ROP_TOKENIZE', source, span)
+  }
+}
+
+export class ParsingError extends RopError {
+  public constructor(source: string, span: SourceSpan, reason: string) {
+    super(reason, 'ROP_PARSE', source, span)
+  }
+}
+
+export class RopReferenceError extends RopError {
+  public constructor(source: string, span: SourceSpan, reason: string) {
+    super(reason, 'ROP_REFERENCE', source, span)
+  }
+}
+
+export class RopTypeError extends RopError {
+  public constructor(source: string, span: SourceSpan, reason: string, options?: ErrorOptions) {
+    super(reason, 'ROP_TYPE', source, span, options)
+  }
+}
+
+export class RopEvaluationError extends RopError {
+  public constructor(source: string, span: SourceSpan, reason: string, options?: ErrorOptions) {
+    super(reason, 'ROP_EVALUATE', source, span, options)
   }
 }

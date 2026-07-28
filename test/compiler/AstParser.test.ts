@@ -9,15 +9,12 @@ function assertAstNodeMatch(
   expected: AstNode,
   msg?: string,
 ): void {
-  assertObjectMatch(actual, expected as any, msg)
+  assertObjectMatch(JSON.parse(JSON.stringify(actual)), JSON.parse(JSON.stringify(expected)), msg)
 }
 
 Deno.test('Parse single operand', async (t) => {
   await t.step('should parse value', () => {
-    assertEquals($ast`${123}`, {
-      type: NodeType.Value,
-      token: { type: TokenType.Embedded, literal: '${}', value: 123 },
-    })
+    assertEquals($ast`${123}`, AstFactory.embeddedValue(123))
   })
 
   await t.step('should parse single number constant', () => {

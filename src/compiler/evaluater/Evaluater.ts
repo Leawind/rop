@@ -16,6 +16,7 @@ import { Operations } from '../Operators.ts'
 import { TokenType } from '../Token.ts'
 import type { ConstantToken, EmbeddedToken, Token } from '../Token.ts'
 import { Rop } from '../../Rop.ts'
+import { RopEvaluationError, RopReferenceError, RopTypeError } from '../../error.ts'
 
 /**
  * Evaluater for executing AST nodes and computing their values.
@@ -33,6 +34,7 @@ export class Evaluater {
   public constructor(
     private ast: AstNode,
     private rop: Rop = Rop.INST,
+    private source: string = '',
   ) {}
 
   /**
@@ -63,7 +65,7 @@ export class Evaluater {
       case NodeType.Invoke:
         return this.evaluateInvokeNode(node)
       default:
-        throw new Error(`Unknown node type: ${(node as any).type}`)
+        throw new RopEvaluationError(this.source, this.ast.span, `Unknown node type: ${(node as any).type}`)
     }
   }
 
@@ -80,7 +82,7 @@ export class Evaluater {
   private evaluateIdentifierNode(node: IdentifierNode): any {
     const bindings = this.rop.bindings
     if (!bindings.has(node.name)) {
-      throw new Error(`Unknown identifier: ${node.name}`)
+      throw new RopReferenceError(this.source, node.span, `Unknown identifier: ${node.name}`)
     }
     return bindings.get(node.name)
   }
@@ -154,7 +156,7 @@ export class Evaluater {
     const args = node.args.map((arg) => this.evaluateNode(arg))
 
     if (typeof target !== 'function') {
-      throw new Error(`Cannot invoke non-function: ${typeof target}`)
+      throw new RopTypeError(this.source, node.target.span, `Cannot invoke non-function: ${typeof target}`)
     }
 
     return Reflect.apply(target, receiver, args)

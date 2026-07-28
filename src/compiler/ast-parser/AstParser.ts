@@ -2,6 +2,8 @@ import { TokenWalker } from '../../utils/TokenWalker.ts'
 import { PunctuationToken, Token, TokenType } from '../Token.ts'
 import { AstNode, NodeSlice, NodeType } from '../AstNode.ts'
 import { Operations } from '../Operators.ts'
+import { ParsingError } from '../../error.ts'
+import { defineSpan, mergeSpans, SourceSpan } from '../../source.ts'
 
 /**
  * Parser for converting tokens into an Abstract Syntax Tree (AST).
@@ -15,8 +17,12 @@ export class AstParser extends TokenWalker {
    *
    * @param tokens - The tokens to parse into an AST
    */
-  public constructor(tokens: Token[]) {
+  public constructor(tokens: Token[], private readonly source: string = tokens.map((token) => token.literal).join('')) {
     super(tokens)
+  }
+
+  private error(reason: string, span: SourceSpan = this.peek()?.span ?? { start: this.source.length, end: this.source.length }): never {
+    throw new ParsingError(this.source, span, reason)
   }
 
   /**
@@ -31,7 +37,7 @@ export class AstParser extends TokenWalker {
 
     // If there are no tokens, throw an error
     if (this.isFinished()) {
-      throw new Error('Empty expression')
+      this.error('Empty expression')
     }
 
     // Parse expression
@@ -42,7 +48,7 @@ export class AstParser extends TokenWalker {
     if (!this.isFinished()) {
       const remaining = this.getRemaining()
       const t = '[\n' + remaining.map((x) => '\t' + JSON.stringify(x)).join(',\n') + '\n]'
-      throw new Error(`Unexpected token at end of expression: \n${t}`)
+      this.error(`Unexpected token at end of expression: \n${t}`, remaining[0]!.span)
     }
 
     return result
@@ -75,11 +81,11 @@ export class AstParser extends TokenWalker {
         case TokenType.Operator: {
           const operator = Operations.binaryFromLiteral(token.literal)
           if (operator === null) {
-            throw new Error(`Unexpected token: ${token}, binary operator expected`)
+            this.error(`Unexpected operator '${token.literal}', binary operator expected`, token.span)
           }
           const meta = Operations.meta(operator)
           if (meta.type !== 'binary') {
-            throw new Error(`Never!`)
+            this.error('Invalid binary operator metadata', token.span)
           }
 
           if (meta.precedence < precedence) {
@@ -96,7 +102,7 @@ export class AstParser extends TokenWalker {
           const isRightAssociative = operator === '**'
           const right = this.parseExpression(isRightAssociative ? meta.precedence : meta.precedence + 1)
 
-          left = { type: NodeType.Binary, left, operation: operator, right }
+          left = defineSpan({ type: NodeType.Binary, left, operation: operator, right }, mergeSpans(left, right))
           break branch_token_type
         }
         case TokenType.Punctuation: {
@@ -107,11 +113,11 @@ export class AstParser extends TokenWalker {
               this.skipWhitespace()
               const prop = this.peek()
               if (prop !== null && prop.type === TokenType.Identifier) {
-                left = { type: NodeType.AccessProperty, left, name: prop.literal }
+                left = defineSpan({ type: NodeType.AccessProperty, left, name: prop.literal }, { start: left.span.start, end: prop.span.end })
                 this.consume()
                 break branch_token_type
               }
-              throw new Error('Expected identifier after dot')
+              this.error('Expected identifier after dot')
             }
             case '(': {
               this.consume()
@@ -127,7 +133,7 @@ export class AstParser extends TokenWalker {
                     break
                   }
                   if (!this.tryConsumePunctuation(',')) {
-                    throw new Error("Expected ',' or ')' after function argument")
+                    this.error("Expected ',' or ')' after function argument")
                   }
 
                   this.skipWhitespace()
@@ -135,12 +141,13 @@ export class AstParser extends TokenWalker {
                     break // Allow a trailing comma.
                   }
                   if (this.peekPunctuation(',')) {
-                    throw new Error('Expected expression after comma')
+                    this.error('Expected expression after comma')
                   }
                 }
               }
 
-              left = { type: NodeType.Invoke, target: left, args }
+              const end = this.tokens[this.position - 1]!.span.end
+              left = defineSpan({ type: NodeType.Invoke, target: left, args }, { start: left.span.start, end })
 
               break branch_token_type
             }
@@ -154,7 +161,7 @@ export class AstParser extends TokenWalker {
               this.skipWhitespace()
               if (this.peekPunctuation(']')) {
                 this.consume()
-                throw new Error('Empty subscript is not allowed')
+                this.error('Empty subscript is not allowed', token.span)
               }
 
               const slices: NodeSlice[] = []
@@ -170,7 +177,7 @@ export class AstParser extends TokenWalker {
                   break
                 }
                 if (!this.tryConsumePunctuation(',')) {
-                  throw new Error("Expected ',' or ']' after subscript")
+                  this.error("Expected ',' or ']' after subscript")
                 }
                 isSlicing = true
 
@@ -179,23 +186,26 @@ export class AstParser extends TokenWalker {
                   break // Allow a trailing comma.
                 }
                 if (this.peekPunctuation(',')) {
-                  throw new Error('Expected subscript after comma')
+                  this.error('Expected subscript after comma')
                 }
               }
 
               // Determine if it's indexing or slicing
               if (isSlicing || slices.length > 1) {
                 // Multiple slices or colons indicate slicing
-                left = { type: NodeType.Slicing, target: left, slices }
+                const end = this.tokens[this.position - 1]!.span.end
+                left = defineSpan({ type: NodeType.Slicing, target: left, slices }, { start: left.span.start, end })
               } else if (slices.length === 1) {
                 // Single slice - check if it's indexing or slicing
                 const slice = slices[0]
                 if (slice.start && slice.end === undefined && slice.step === undefined) {
                   // Simple index [expr]
-                  left = { type: NodeType.Indexing, target: left, index: slice.start }
+                  const end = this.tokens[this.position - 1]!.span.end
+                  left = defineSpan({ type: NodeType.Indexing, target: left, index: slice.start }, { start: left.span.start, end })
                 } else {
                   // Complex slice with colons [start:end:step]
-                  left = { type: NodeType.Slicing, target: left, slices }
+                  const end = this.tokens[this.position - 1]!.span.end
+                  left = defineSpan({ type: NodeType.Slicing, target: left, slices }, { start: left.span.start, end })
                 }
               }
               break branch_token_type
@@ -215,31 +225,32 @@ export class AstParser extends TokenWalker {
 
     const token = this.next()
     if (token === null) {
-      throw new Error('Unexpected end of expression')
+      this.error('Unexpected end of expression')
     }
 
     switch (token.type) {
       case TokenType.Embedded:
       case TokenType.Constant:
-        return { type: NodeType.Value, token }
+        return defineSpan({ type: NodeType.Value, token }, token.span)
       case TokenType.Identifier:
-        return { type: NodeType.Identifier, name: token.literal }
+        return defineSpan({ type: NodeType.Identifier, name: token.literal }, token.span)
 
       case TokenType.Operator: {
         // Handle unary operators
         const unaryOperatorName = Operations.unaryFromLiteral(token.literal)
         if (!unaryOperatorName) {
-          throw new Error(`Unexpected operator: '${token.literal}'`)
+          this.error(`Unexpected operator: '${token.literal}'`, token.span)
         }
         const meta = Operations.meta(unaryOperatorName)
         if (meta.type !== 'unary') {
-          throw new Error(`Never!`)
+          this.error('Invalid unary operator metadata', token.span)
         }
-        return {
+        const operand = this.parseExpression(meta.precedence)
+        return defineSpan({
           type: NodeType.Unary,
           operation: unaryOperatorName,
-          operand: this.parseExpression(meta.precedence),
-        }
+          operand,
+        }, { start: token.span.start, end: operand.span.end })
       }
 
       case TokenType.Punctuation:
@@ -249,17 +260,17 @@ export class AstParser extends TokenWalker {
 
           this.skipWhitespace()
           if (this.tryConsumePunctuation(')') === null) {
-            throw new Error('Expected closing parenthesis')
+            this.error('Expected closing parenthesis')
           }
 
           return expr
         }
-        throw new Error(`Unexpected punctuation: ${token.literal}`)
+        this.error(`Unexpected punctuation: ${token.literal}`, token.span)
 
       case TokenType.Whitespace:
-        throw new Error(`Unexpected whitespace token: '${token.literal}'`)
+        this.error(`Unexpected whitespace token: '${token.literal}'`, token.span)
       default:
-        throw new Error(`Unknown token type: ${token}`)
+        this.error(`Unknown token type: ${String(token)}`)
     }
   }
 
@@ -274,7 +285,7 @@ export class AstParser extends TokenWalker {
 
     if (!this.tryConsumePunctuation(':')) {
       if (slice.start === undefined) {
-        throw new Error('Expected subscript expression')
+        this.error('Expected subscript expression')
       }
       return { slice, hasColon: false }
     }
@@ -294,7 +305,7 @@ export class AstParser extends TokenWalker {
     }
 
     if (this.peekPunctuation(':')) {
-      throw new Error('A slice can contain at most two colons')
+      this.error('A slice can contain at most two colons')
     }
     return { slice, hasColon: true }
   }

@@ -51,9 +51,9 @@ Deno.test('TokenWalker', async (t) => {
 
     const nextThree = tw.next(3)
     assertEquals(nextThree, [
-      { type: TokenType.Whitespace, literal: ' ' },
-      { type: TokenType.Operator, literal: '**' },
-      { type: TokenType.Whitespace, literal: ' ' },
+      TokenFactory.whitespace(' '),
+      TokenFactory.operator('**'),
+      TokenFactory.whitespace(' '),
     ])
     assertEquals(tw.getCurrentPosition(), 5)
 
@@ -71,7 +71,7 @@ Deno.test('TokenWalker', async (t) => {
     tw.skip(3)
     assertStrictEquals(tw.getCurrentPosition(), 4)
 
-    const walkerNearEnd = new TokenWalker([{ type: TokenType.Identifier, literal: 'x' }])
+    const walkerNearEnd = new TokenWalker([TokenFactory.identifier('x')])
     walkerNearEnd.skip(5)
     assert(walkerNearEnd.isFinished())
   })

@@ -37,10 +37,16 @@ Deno.test('Tokenize single token', async (t) => {
     assertEquals(Tokenizer.tokenize`3.14159265358979323846264338327`, [
       TokenFactory.constant('3.14159265358979323846264338327', 3.14159265358979323846264338327),
     ])
+    assertEquals(Tokenizer.tokenize`0xFF`, [TokenFactory.constant('0xFF', 255)])
+    assertEquals(Tokenizer.tokenize`0b1010`, [TokenFactory.constant('0b1010', 10)])
+    assertEquals(Tokenizer.tokenize`0o755`, [TokenFactory.constant('0o755', 493)])
+    assertEquals(Tokenizer.tokenize`1_000_000`, [TokenFactory.constant('1_000_000', 1_000_000)])
+    assertEquals(Tokenizer.tokenize`.5`, [TokenFactory.constant('.5', 0.5)])
   })
   await t.step('should tokenize single constant: bigint', () => {
     assertEquals(Tokenizer.tokenize`123n`, [TokenFactory.constant('123n', 123n)])
     assertEquals(Tokenizer.tokenize`43252352354n`, [TokenFactory.constant('43252352354n', 43252352354n)])
+    assertEquals(Tokenizer.tokenize`0xFFn`, [TokenFactory.constant('0xFFn', 255n)])
   })
   await t.step('should tokenize single constant: string', () => {
     assertEquals(Tokenizer.tokenize`'Hello world!'`, [TokenFactory.constant("'Hello world!'", 'Hello world!')])
@@ -52,6 +58,7 @@ Deno.test('Tokenize single token', async (t) => {
     assertEquals(Tokenizer.tokenize`"I say 'yes', you say \"no\""`, [
       TokenFactory.constant(`"I say 'yes', you say \\"no\\""`, `I say 'yes', you say "no"`),
     ])
+    assertEquals(Tokenizer.tokenize`'line\n\t\x41\u{1F600}'`, [TokenFactory.constant(`'line\\n\\t\\x41\\u{1F600}'`, 'line\n\tA😀')])
   })
 
   await t.step('should tokenize single identity with ascii characters', () => {
@@ -304,5 +311,11 @@ Deno.test('Tokenize unexpected character', async (t) => {
     assertThrows(() => {
       Tokenizer.tokenize`3 + 🌍`
     }, TokenizingError)
+  })
+
+  await t.step('should reject malformed literals', () => {
+    for (const source of ['1e', '1n.2', '0x', '1__0', "'unterminated", "'line\nbreak'"]) {
+      assertThrows(() => Tokenizer.tokenize(source), TokenizingError)
+    }
   })
 })

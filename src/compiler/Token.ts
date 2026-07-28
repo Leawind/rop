@@ -1,3 +1,5 @@
+import { Spanned } from '../source.ts'
+
 export enum TokenType {
   Whitespace = 'Whitespace',
   Operator = 'Operator',
@@ -7,14 +9,14 @@ export enum TokenType {
   Punctuation = 'Punctuation',
 }
 
-interface BaseToken<T extends TokenType> {
+interface BaseToken<T extends TokenType> extends Spanned {
   type: T
   literal: string
 }
 
 export interface EmbeddedToken extends BaseToken<TokenType.Embedded> {
   literal: '${}'
-  value: any
+  value: unknown
 }
 export interface ConstantToken extends BaseToken<TokenType.Constant> {
   value: string | number | bigint

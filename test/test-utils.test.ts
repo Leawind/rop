@@ -18,7 +18,7 @@ export function $raw(strings: TemplateStringsArray, ...args: unknown[]) {
 
 export function $ast(strs: TemplateStringsArray, ...args: unknown[]): AstNode {
   const tokens = Tokenizer.tokenize(strs, ...args)
-  const ast = new AstParser(tokens).parse()
+  const ast = new AstParser(tokens, Tokenizer.source(strs)).parse()
   return ast
 }
 

@@ -1,5 +1,6 @@
 import { type BinaryOperationName, type UnaryOperationName } from './Operators.ts'
 import { ConstantToken, EmbeddedToken as EmbeddedToken } from './Token.ts'
+import { Spanned } from '../source.ts'
 
 export enum NodeType {
   Value = 'Value',
@@ -12,7 +13,7 @@ export enum NodeType {
   Invoke = 'Invoke',
 }
 
-interface BaseAstNode<T extends NodeType> {
+interface BaseAstNode<T extends NodeType> extends Spanned {
   type: T
 }
 

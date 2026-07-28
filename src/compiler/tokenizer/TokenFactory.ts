@@ -8,6 +8,7 @@ import {
   TokenType,
   WhitespaceToken,
 } from '../Token.ts'
+import { defineSpan, SourceSpan } from '../../source.ts'
 
 /**
  * Factory class for creating tokens.
@@ -18,27 +19,27 @@ import {
 export class TokenFactory {
   private constructor() {}
 
-  public static whitespace(literal: string): WhitespaceToken {
-    return { type: TokenType.Whitespace, literal }
+  public static whitespace(literal: string, span?: SourceSpan): WhitespaceToken {
+    return defineSpan({ type: TokenType.Whitespace, literal }, span ?? { start: 0, end: literal.length })
   }
 
-  public static operator(literal: string): OperatorToken {
-    return { type: TokenType.Operator, literal }
+  public static operator(literal: string, span?: SourceSpan): OperatorToken {
+    return defineSpan({ type: TokenType.Operator, literal }, span ?? { start: 0, end: literal.length })
   }
 
-  public static embeddedValue(value: unknown): EmbeddedToken {
-    return { type: TokenType.Embedded, literal: '${}', value }
+  public static embeddedValue(value: unknown, span?: SourceSpan): EmbeddedToken {
+    return defineSpan({ type: TokenType.Embedded, literal: '${}' as const, value }, span ?? { start: 0, end: 3 })
   }
 
-  public static constant(literal: string, value: string | number | bigint): ConstantToken {
-    return { type: TokenType.Constant, literal, value }
+  public static constant(literal: string, value: string | number | bigint, span?: SourceSpan): ConstantToken {
+    return defineSpan({ type: TokenType.Constant, literal, value }, span ?? { start: 0, end: literal.length })
   }
 
-  public static punctuation(literal: PunctuationChar): PunctuationToken {
-    return { type: TokenType.Punctuation, literal }
+  public static punctuation(literal: PunctuationChar, span?: SourceSpan): PunctuationToken {
+    return defineSpan({ type: TokenType.Punctuation, literal }, span ?? { start: 0, end: literal.length })
   }
 
-  public static identifier(literal: string): IdentifierToken {
-    return { type: TokenType.Identifier, literal }
+  public static identifier(literal: string, span?: SourceSpan): IdentifierToken {
+    return defineSpan({ type: TokenType.Identifier, literal }, span ?? { start: 0, end: literal.length })
   }
 }
