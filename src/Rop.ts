@@ -1,9 +1,8 @@
 import { AstParser } from './compiler/ast-parser/AstParser.ts'
-import { Evaluater } from './compiler/evaluater/Evaluater.ts'
+import { Evaluator } from './compiler/evaluator/Evaluator.ts'
 import {
   BinaryOperationArrowFn,
   BinaryOperationName,
-  OperationArrowFn,
   OperationFn,
   OperationName,
   Operations,
@@ -12,13 +11,16 @@ import {
   UnaryOperationName,
 } from './compiler/Operators.ts'
 import { Tokenizer } from './compiler/tokenizer/Tokenizer.ts'
-import { Clazz, detectFunctionType, normalizeIndex, Slice } from './utils/index.ts'
+import { Clazz, normalizeIndex, Slice, sliceArray } from './utils/index.ts'
+import { AstNode } from './compiler/AstNode.ts'
+
+type BoundOperation<R = unknown> = (...args: any[]) => R
 
 export class Rop {
   /**
    * { Clazz.prototype --> { Operation.symbol --> OperationFn } }
    */
-  private readonly overloadings: Map<any, Map<symbol, OperationArrowFn>> = new Map()
+  private readonly overloadings: Map<object, Map<symbol, BoundOperation>> = new Map()
 
   /**
    * { identifier_name --> value } []
@@ -27,7 +29,9 @@ export class Rop {
    *
    * Those identifiers can be used in the template string.
    */
-  public readonly bindings: Map<string, any> = new Map()
+  public readonly bindings: Map<string, unknown> = new Map()
+
+  private static readonly templateCache = new WeakMap<TemplateStringsArray, { source: string; ast: AstNode }>()
 
   public constructor() {}
 
@@ -43,10 +47,14 @@ export class Rop {
    * ```
    */
   public o<T = any>(strs: TemplateStringsArray, ...args: unknown[]): T {
-    const source = Tokenizer.source(strs)
-    const tokens = Tokenizer.tokenize(strs, ...args)
-    const ast = new AstParser(tokens, source).parse()
-    const result = new Evaluater(ast, this, source).evaluate<T>()
+    let template = Rop.templateCache.get(strs)
+    if (template === undefined) {
+      const source = Tokenizer.source(strs)
+      const tokens = Tokenizer.tokenize(strs, ...args)
+      template = { source, ast: new AstParser(tokens, source).parse() }
+      Rop.templateCache.set(strs, template)
+    }
+    const result = new Evaluator(template.ast, this, template.source, args).evaluate<T>()
     return result
   }
 
@@ -69,10 +77,10 @@ export class Rop {
    *
    * @param args - Either a key-value pair, an object with multiple key-value pairs, or a Map
    */
-  public bind(key: string, value: any): Rop
-  public bind(bindings: Record<string, any>): Rop
-  public bind(bindings: Map<string, any>): Rop
-  public bind(...args: [key: string, value: any] | [bindings: Record<string, any>] | [bindings: Map<string, any>]): Rop {
+  public bind(key: string, value: unknown): this
+  public bind(bindings: Record<string, unknown>): this
+  public bind(bindings: ReadonlyMap<string, unknown>): this
+  public bind(...args: [key: string, value: unknown] | [bindings: Record<string, unknown>] | [bindings: ReadonlyMap<string, unknown>]): this {
     if (typeof args[0] === 'string') {
       const [key, value] = args
       this.bindings.set(key, value)
@@ -101,7 +109,7 @@ export class Rop {
    *
    * @param keys - The keys to unbind
    */
-  public unbind(...keys: string[]): Rop {
+  public unbind(...keys: string[]): this {
     for (const k of keys) {
       this.bindings.delete(k)
     }
@@ -135,17 +143,9 @@ export class Rop {
     }
     const classOverloads = this.overloadings.get(prototype)!
 
-    switch (detectFunctionType(operationFn)) {
-      case 'normal':
-      case 'method':
-        classOverloads.set(symbol, operationFn)
-        break
-      case 'arrow':
-        classOverloads.set(symbol, function (this: any, ...args: unknown[]) {
-          return operationFn(this, ...args)
-        })
-        break
-    }
+    classOverloads.set(symbol, function (this: unknown, ...args: unknown[]) {
+      return operationFn(this, ...args)
+    })
   }
 
   /**
@@ -170,12 +170,12 @@ export class Rop {
    * @param operation - The operation name or symbol to overload
    * @param operationFn - The function that implements the operation
    */
-  public overload<T>(clazz: Clazz, operation: UnaryOperationName, operationFn: UnaryOperationArrowFn<T>): Rop
-  public overload<T>(clazz: Clazz, operation: BinaryOperationName, operationFn: BinaryOperationArrowFn<T>): Rop
-  public overload<T>(clazz: Clazz, operation: ReverseBinaryOperationName, operationFn: BinaryOperationArrowFn<T>): Rop
-  public overload<T>(clazz: Clazz, operation: symbol, operationFn: OperationFn<T>): Rop
-  public overload<T>(clazz: Clazz, operation: OperationName | symbol, operationFn: OperationFn<T>): Rop
-  public overload<T>(clazz: Clazz, op: OperationName | symbol, operationFn: OperationFn<T>): Rop {
+  public overload<T>(clazz: Clazz, operation: UnaryOperationName, operationFn: UnaryOperationArrowFn<T>): this
+  public overload<T>(clazz: Clazz, operation: BinaryOperationName, operationFn: BinaryOperationArrowFn<T>): this
+  public overload<T>(clazz: Clazz, operation: ReverseBinaryOperationName, operationFn: BinaryOperationArrowFn<T>): this
+  public overload<T>(clazz: Clazz, operation: symbol, operationFn: OperationFn<T>): this
+  public overload<T>(clazz: Clazz, operation: OperationName | symbol, operationFn: OperationFn<T>): this
+  public overload<T>(clazz: Clazz, op: OperationName | symbol, operationFn: OperationFn<T>): this {
     if (clazz.prototype === undefined) {
       throw new TypeError('clazz must be a class')
     }
@@ -199,15 +199,10 @@ export class Rop {
    *
    * const rop = new Rop()
    * rop.overloads(Vec2, {
-   *   // Method (Recommended style)
-   *   '+'(this: Vec2, other: Vec2) {
-   *     return new Vec2(this.x + other.x, this.y + other.y);
+   *   // All instance-level overloads receive the overloaded value as `self`.
+   *   '+': (self: Vec2, other: Vec2) => {
+   *     return new Vec2(self.x + other.x, self.y + other.y);
    *   },
-   *   // Normal function
-   *   '-': function (this: Vec2, other: Vec2) {
-   *     return new Vec2(this.x - other.x, this.y - other.y);
-   *   },
-   *   // Arrow function
    *   '==': (self: Vec2, other: Vec2) => {
    *     return self.x === other.x && self.y === other.y;
    *   },
@@ -217,7 +212,7 @@ export class Rop {
    * @param clazz - The class to overload operations for
    * @param def - An object mapping operation names or symbols to their implementation functions
    */
-  public overloads(clazz: Clazz, def: Partial<Record<OperationName | symbol, OperationFn<any>>>): Rop {
+  public overloads(clazz: Clazz, def: Partial<Record<OperationName | symbol, OperationFn<any>>>): this {
     if (clazz.prototype === undefined) {
       throw new TypeError('clazz must be a class')
     }
@@ -243,7 +238,7 @@ export class Rop {
    * @param prototype prototype object. Get by `Object.getPrototypeOf(inst)` or `Clazz.prototype`
    * @param symbol operation symbol. Get by `Operations.symbol(op)` or `Operations.meta(op).symbol`
    */
-  private getOverloadFromPrototypeChain(prototype: any, symbol: symbol): OperationFn | null {
+  private getOverloadFromPrototypeChain(prototype: any, symbol: symbol): BoundOperation | null {
     let p = prototype
     while (p !== null) {
       // Check if the class has overloaded the operation
@@ -269,7 +264,7 @@ export class Rop {
    * @param symbol - The operation symbol
    * @returns The overloaded operation function, or null if not found
    */
-  public getOverloadOnClass<T>(clazz: Clazz<T>, symbol: symbol): OperationFn<T> | null {
+  public getOverloadOnClass<T>(clazz: Clazz<T>, symbol: symbol): BoundOperation | null {
     return this.getOverloadFromPrototypeChain(clazz.prototype, symbol)
   }
 
@@ -280,7 +275,7 @@ export class Rop {
    * @param symbol - The operation symbol
    * @returns The overloaded operation function, or null if not found
    */
-  public getOverloadOnInstance<T>(inst: T, symbol: symbol): OperationFn | null {
+  public getOverloadOnInstance<T>(inst: T, symbol: symbol): BoundOperation | null {
     return this.getOverloadFromPrototypeChain(inst, symbol)
   }
 
@@ -291,7 +286,7 @@ export class Rop {
   /**
    * Bind built-in identifiers like `true`, `false`, `null`, `undefined`, `Infinity`, `NaN`
    */
-  public bindDefaults(): Rop {
+  public bindDefaults(): this {
     return this.bind({
       true: true,
       false: false,
@@ -315,7 +310,7 @@ export class Rop {
   /**
    * Bind all properties of the `Math` object.
    */
-  public bindMaths(): Rop {
+  public bindMaths(): this {
     return this.bind(
       Object.getOwnPropertyNames(Math).reduce((m, k) => {
         Reflect.set(m, k, Reflect.get(Math, k))
@@ -333,57 +328,20 @@ export class Rop {
    * - Set `+` for union
    * - Set `-` for difference
    */
-  public overloadDefaults(): Rop {
+  public overloadDefaults(): this {
     this.overloads(Array, {
       '+': (self: unknown[], other: unknown[]) => [...self, ...other],
-      '[i]'(this: unknown[], index: number) {
+      '[i]': (self: unknown[], index: number) => {
         if (typeof index !== 'number') {
           throw new Error('Index of Array must be a number')
         }
-        return this[normalizeIndex(index, this.length)]
+        return self[normalizeIndex(index, self.length)]
       },
-      '[:]'(this: unknown[], slices: Slice[]): unknown[] | unknown {
+      '[:]': (self: unknown[], slices: Slice[]): unknown[] | unknown => {
         if (slices.length !== 1) {
           throw new Error('Multi slice is not supported')
         }
-        const slice = slices[0]
-        const toInteger = (value: unknown, name: string): number => {
-          if (typeof value !== 'number' || !Number.isFinite(value) || !Number.isInteger(value)) {
-            throw new TypeError(`Slice ${name} must be a finite integer`)
-          }
-          return value
-        }
-        const step = slice.step === undefined ? 1 : toInteger(slice.step, 'step')
-        if (step === 0) {
-          throw new Error('Slice step cannot be zero')
-        }
-
-        const clamp = (value: unknown, defaultValue: number, lower: number, upper: number): number => {
-          if (value === undefined) {
-            return defaultValue
-          }
-          let index = toInteger(value, 'bound')
-          if (index < 0) {
-            index += this.length
-          }
-          return Math.min(Math.max(index, lower), upper)
-        }
-
-        const result: unknown[] = []
-        if (step > 0) {
-          const start = clamp(slice.start, 0, 0, this.length)
-          const end = clamp(slice.end, this.length, 0, this.length)
-          for (let i = start; i < end; i += step) {
-            result.push(this[i])
-          }
-        } else {
-          const start = clamp(slice.start, this.length - 1, -1, this.length - 1)
-          const end = clamp(slice.end, -1, -1, this.length - 1)
-          for (let i = start; i > end; i += step) {
-            result.push(this[i])
-          }
-        }
-        return result
+        return sliceArray(self, slices[0])
       },
     })
     this.overloads(String, {

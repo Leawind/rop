@@ -1,5 +1,5 @@
 import { assertEquals, assertInstanceOf, assertStringIncludes } from '@std/assert'
-import { ParsingError, RopReferenceError, TokenizingError } from '../src/error.ts'
+import { ParsingError, RopEvaluationError, RopReferenceError, TokenizingError } from '../src/error.ts'
 import { Rop } from '../src/Rop.ts'
 import { Tokenizer } from '../src/compiler/tokenizer/Tokenizer.ts'
 
@@ -28,5 +28,13 @@ Deno.test('structured errors include source locations', () => {
   } catch (error) {
     assertInstanceOf(error, RopReferenceError)
     assertEquals(error.span, { start: 0, end: 7 })
+  }
+
+  try {
+    new Rop().overloadDefaults().o`${[1, 2, 3]}[::0]`
+    throw new Error('Expected evaluation to fail')
+  } catch (error) {
+    assertInstanceOf(error, RopEvaluationError)
+    assertInstanceOf(error.cause, RangeError)
   }
 })

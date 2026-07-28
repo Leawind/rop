@@ -1,8 +1,9 @@
 import { assertEquals, assertObjectMatch, assertThrows } from '@std/assert'
-import { AstNode, NodeType } from '../../src/compiler/AstNode.ts'
-import { TokenType } from '../../src/compiler/Token.ts'
+import { AstNode } from '../../src/compiler/AstNode.ts'
 import { $ast } from '../test-utils.test.ts'
 import { AstFactory } from '../../src/compiler/ast-parser/AstFactory.ts'
+import { Tokenizer } from '../../src/compiler/tokenizer/Tokenizer.ts'
+import { AstParser } from '../../src/compiler/ast-parser/AstParser.ts'
 
 function assertAstNodeMatch(
   actual: AstNode,
@@ -354,5 +355,10 @@ Deno.test('Parse special cases', async (t) => {
 
   await t.step('should throw error parsing incomplete expression', () => {
     assertThrows(() => $ast`1 +`)
+  })
+
+  await t.step('should limit expression nesting', () => {
+    const source = `${'('.repeat(10)}1${')'.repeat(10)}`
+    assertThrows(() => new AstParser(Tokenizer.tokenize(source), source, 8).parse())
   })
 })

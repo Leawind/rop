@@ -188,7 +188,8 @@ export class Tokenizer extends StringWalker {
         this.consume(2)
         character = String.fromCodePoint(this.readUnicodeEscape(start))
       } else {
-        character = this.next(1)
+        character = this.getRemaining().match(/^./su)![0]
+        this.consume(character.length)
       }
       const valid = first ? /^[$_\p{ID_Start}]$/u.test(character) : /^[$_\u200C\u200D\p{ID_Continue}]$/u.test(character)
       if (!valid) {
@@ -218,7 +219,7 @@ export class Tokenizer extends StringWalker {
       const part = input.raw[i]
       tokens.push(...new Tokenizer(part, true, offset, source).tokenize())
       offset += part.length
-      tokens.push(TokenFactory.embeddedValue(args[i], { start: offset, end: offset + 3 }))
+      tokens.push(TokenFactory.embeddedValue(args[i], { start: offset, end: offset + 3 }, i))
       offset += 3
     }
     tokens.push(...new Tokenizer(input.raw.at(-1)!, true, offset, source).tokenize())

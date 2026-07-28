@@ -80,6 +80,7 @@ Deno.test('Tokenize single token', async (t) => {
     assertEquals(Tokenizer.tokenize`こんにちは`, [TokenFactory.identifier('こんにちは')])
     assertEquals(Tokenizer.tokenize`안녕하세요`, [TokenFactory.identifier('안녕하세요')])
     assertEquals(Tokenizer.tokenize`שלום`, [TokenFactory.identifier('שלום')])
+    assertEquals(Tokenizer.tokenize`𐐀value`, [TokenFactory.identifier('𐐀value')])
 
     assertEquals(Tokenizer.tokenize`$_mixed_混合_123`, [TokenFactory.identifier('$_mixed_混合_123')])
   })

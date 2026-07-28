@@ -9,7 +9,7 @@ import { defineSpan, mergeSpans, SourceSpan } from '../../source.ts'
  * Parser for converting tokens into an Abstract Syntax Tree (AST).
  *
  * This class takes a sequence of tokens and builds an AST representation
- * that can be evaluated by the Evaluater.
+ * that can be evaluated by the Evaluator.
  */
 export class AstParser extends TokenWalker {
   /**
@@ -17,7 +17,13 @@ export class AstParser extends TokenWalker {
    *
    * @param tokens - The tokens to parse into an AST
    */
-  public constructor(tokens: Token[], private readonly source: string = tokens.map((token) => token.literal).join('')) {
+  private depth = 0
+
+  public constructor(
+    tokens: Token[],
+    private readonly source: string = tokens.map((token) => token.literal).join(''),
+    private readonly maxDepth = 256,
+  ) {
     super(tokens)
   }
 
@@ -61,6 +67,18 @@ export class AstParser extends TokenWalker {
   }
 
   private parseExpression(precedence: number = 0): AstNode {
+    if (this.depth >= this.maxDepth) {
+      this.error(`Expression nesting exceeds the limit of ${this.maxDepth}`)
+    }
+    this.depth++
+    try {
+      return this.parseExpressionInner(precedence)
+    } finally {
+      this.depth--
+    }
+  }
+
+  private parseExpressionInner(precedence: number): AstNode {
     // Parse left operand
     let left = this.parseAtom()
 
@@ -118,6 +136,7 @@ export class AstParser extends TokenWalker {
                 break branch_token_type
               }
               this.error('Expected identifier after dot')
+              break
             }
             case '(': {
               this.consume()
@@ -266,9 +285,11 @@ export class AstParser extends TokenWalker {
           return expr
         }
         this.error(`Unexpected punctuation: ${token.literal}`, token.span)
+        break
 
       case TokenType.Whitespace:
         this.error(`Unexpected whitespace token: '${token.literal}'`, token.span)
+        break
       default:
         this.error(`Unknown token type: ${String(token)}`)
     }

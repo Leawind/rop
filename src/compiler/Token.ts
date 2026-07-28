@@ -17,6 +17,7 @@ interface BaseToken<T extends TokenType> extends Spanned {
 export interface EmbeddedToken extends BaseToken<TokenType.Embedded> {
   literal: '${}'
   value: unknown
+  index?: number
 }
 export interface ConstantToken extends BaseToken<TokenType.Constant> {
   value: string | number | bigint

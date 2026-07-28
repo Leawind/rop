@@ -170,23 +170,11 @@ Deno.test('Quick Tutorial: Operation overloading', async (t) => {
   await t.step('Add operation overloading on Rop instance', () => {
     // Create a new Rop instance
     const rop = new Rop().bind({ true: true, false: false })
-    // Here are 3 different styles to define the operation overloading function
+    // Instance-level overloads always receive the overloaded value as `self`.
     rop.overloads(Boolean, {
-      // Method (Recommended style)
-      '+'(this: boolean, other: boolean) {
-        return this || other
-      },
-
-      // Arrow function
-      // the first parameter must be `self`
+      '+': (self: boolean, other: boolean) => self || other,
       '*': (self: boolean, other: boolean) => self && other,
-
-      // Normal function
-      // If you are using typescript, the first parameter must be `this`.
-      // It's not a real parameter, it's just a type declaration for keyword `this`.
-      '^': function (this: boolean, other: boolean) {
-        return this !== other
-      },
+      '^': (self: boolean, other: boolean) => self !== other,
     })
     assert(rop.o`true + false`)
     assertFalse(rop.o`true * false`)

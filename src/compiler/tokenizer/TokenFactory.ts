@@ -27,8 +27,12 @@ export class TokenFactory {
     return defineSpan({ type: TokenType.Operator, literal }, span ?? { start: 0, end: literal.length })
   }
 
-  public static embeddedValue(value: unknown, span?: SourceSpan): EmbeddedToken {
-    return defineSpan({ type: TokenType.Embedded, literal: '${}' as const, value }, span ?? { start: 0, end: 3 })
+  public static embeddedValue(value: unknown, span?: SourceSpan, index?: number): EmbeddedToken {
+    const token = defineSpan({ type: TokenType.Embedded, literal: '${}' as const, value } as EmbeddedToken, span ?? { start: 0, end: 3 })
+    if (index !== undefined) {
+      Object.defineProperty(token, 'index', { enumerable: false, value: index })
+    }
+    return token
   }
 
   public static constant(literal: string, value: string | number | bigint, span?: SourceSpan): ConstantToken {

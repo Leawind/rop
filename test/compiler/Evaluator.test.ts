@@ -2,7 +2,7 @@ import { assert, assertFalse, assertStrictEquals } from '@std/assert'
 import { $eval } from '../test-utils.test.ts'
 import { Rop } from '../../src/Rop.ts'
 
-Deno.test('Evaluater', async (t) => {
+Deno.test('Evaluator', async (t) => {
   await t.step('should evaluate constant values', () => {
     assertStrictEquals($eval`42`, 42)
     assertStrictEquals($eval`299792458n`, 299792458n)
@@ -105,7 +105,7 @@ Deno.test('Evaluater', async (t) => {
   })
 })
 
-Deno.test('Evaluater: search for binary operator overload', async (t) => {
+Deno.test('Evaluator: search for binary operator overload', async (t) => {
   await t.step('should find the overload', () => {
     const rop = new Rop()
 

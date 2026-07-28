@@ -1,4 +1,4 @@
-import { assert, assertEquals } from '@std/assert'
+import { assert, assertEquals, assertThrows } from '@std/assert'
 import { Rop } from '../src/index.ts'
 
 Deno.test('Rop operation overloading for custom types', async (t) => {
@@ -35,9 +35,7 @@ Deno.test('Rop operation overloading for custom types', async (t) => {
     rop.overload(Vec2, '==', (self: Vec2, other: Vec2) => self.x === other.x && self.y === other.y)
     assert(!rop.o<Vec2>`${a} == ${b}`)
 
-    rop.overload(Vec2, '-', function (this: Vec2, other: Vec2) {
-      return new Vec2(this.x - other.x, this.y - other.y)
-    })
+    rop.overload(Vec2, '-', (self: Vec2, other: Vec2) => new Vec2(self.x - other.x, self.y - other.y))
     assertEquals(rop.o<Vec2>`${a} - ${b}`, new Vec2(a.x - b.x, a.y - b.y))
   })
 
@@ -46,21 +44,19 @@ Deno.test('Rop operation overloading for custom types', async (t) => {
     const b = new Vec2(5, 7)
 
     rop.overloads(Vec2, {
-      // Method (Recommended style)
-      '+'(this: Vec2, other: Vec2) {
-        return new Vec2(this.x + other.x, this.y + other.y)
-      },
-      // Arrow function
+      '+': (self: Vec2, other: Vec2) => new Vec2(self.x + other.x, self.y + other.y),
       '==': (self: Vec2, other: Vec2) => {
         return self.x === other.x && self.y === other.y
       },
-      // Normal function
-      '-': function (this: Vec2, other: Vec2) {
-        return new Vec2(this.x - other.x, this.y - other.y)
-      },
+      '-': (self: Vec2, other: Vec2) => new Vec2(self.x - other.x, self.y - other.y),
     })
     assertEquals(rop.o<Vec2>`${a} + ${b}`, new Vec2(a.x + b.x, a.y + b.y))
     assertEquals(rop.o<Vec2>`${a} - ${b}`, new Vec2(a.x - b.x, a.y - b.y))
     assert(!rop.o<Vec2>`${a} == ${b}`)
+  })
+
+  await t.step('should reject unknown operation names', () => {
+    assertThrows(() => Rop.op('toString' as never))
+    assertThrows(() => new Rop().overloads(Vec2, { typo: () => undefined } as never))
   })
 })

@@ -6,7 +6,12 @@
 
 # rop (Runtime Operator Parser)
 
-`rop` is a TypeScript/JavaScript library that can parses and evaluates expressions via [tagged template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates). It supports **operator overloading** for custom and built-in types, enabling custom behaviors for JS operators and **Python-style array slicing**.
+`rop` is a TypeScript/JavaScript library that parses and evaluates expressions via [tagged template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates). It supports **operator overloading** for custom and built-in types, enabling custom behaviors for JS operators and **Python-style array slicing**.
+
+> [!WARNING]
+> ROP is an expression evaluator, not a security sandbox. Never evaluate expressions from users, networks, or other untrusted sources.
+
+`Rop.INST` and its `o` alias are process-wide mutable conveniences. Use `new Rop()` and keep that instance in the desired scope when bindings or overloads must be isolated.
 
 ## Usage examples
 
@@ -86,3 +91,23 @@ rop.bind({
 })
 rop.o<Vec2>`a + b` // Vec2 { x: 5, y: 7 }
 ```
+
+### Reverse operator overloading
+
+Normal and reverse overloads are intentionally distinct. A normal overload such as `-` is searched on the left operand; its reverse form `r-` is searched on the right operand:
+
+```ts
+rop.overloads(Box, {
+  '-': (self: Box, other: number) => self.value - other,
+  'r-': (self: Box, other: number) => other - self.value,
+})
+
+rop.o`${new Box(10)} - 3` // 7
+rop.o`20 - ${new Box(6)}` // 14
+```
+
+Reverse names are available for every binary operator by prefixing its name with `r`. Unknown overload names throw immediately instead of being ignored.
+
+### Errors
+
+Tokenizer, parser, reference, and evaluation failures expose a stable error code and source span. Use `error.format({ color: true })` to render the relevant source lines when displaying a ROP error in a terminal.

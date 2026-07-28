@@ -48,6 +48,13 @@ Deno.test('Rop Test', async (t) => {
     assertStrictEquals(rop.o<number>`a * b`, 50)
     assert(rop.o<boolean>`a > b`)
   })
+
+  await t.step('reuses a cached template with fresh embedded values', () => {
+    const rop = new Rop()
+    const add = (a: number, b: number) => rop.o<number>`${a} + ${b}`
+    assertStrictEquals(add(1, 2), 3)
+    assertStrictEquals(add(20, 30), 50)
+  })
 })
 
 Deno.test('Rop builtin test', async (t) => {

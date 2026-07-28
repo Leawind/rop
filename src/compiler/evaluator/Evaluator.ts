@@ -16,17 +16,17 @@ import { Operations } from '../Operators.ts'
 import { TokenType } from '../Token.ts'
 import type { ConstantToken, EmbeddedToken, Token } from '../Token.ts'
 import { Rop } from '../../Rop.ts'
-import { RopEvaluationError, RopReferenceError, RopTypeError } from '../../error.ts'
+import { RopError, RopEvaluationError, RopReferenceError, RopTypeError } from '../../error.ts'
 
 /**
- * Evaluater for executing AST nodes and computing their values.
+ * Evaluator for executing AST nodes and computing their values.
  *
  * This class traverses an AST and evaluates each node according to its type,
  * using the provided Rop instance for context such as bindings and operator overloads.
  */
-export class Evaluater {
+export class Evaluator {
   /**
-   * Create a new Evaluater with the given AST and Rop context.
+   * Create a new Evaluator with the given AST and Rop context.
    *
    * @param ast - The AST to evaluate
    * @param rop - The Rop instance providing context (bindings, overloads, etc.)
@@ -35,6 +35,7 @@ export class Evaluater {
     private ast: AstNode,
     private rop: Rop = Rop.INST,
     private source: string = '',
+    private embeddedValues: readonly unknown[] = [],
   ) {}
 
   /**
@@ -47,32 +48,41 @@ export class Evaluater {
   }
 
   private evaluateNode(node: AstNode): any {
-    switch (node.type) {
-      case NodeType.Value:
-        return this.evaluateValueNode(node)
-      case NodeType.Identifier:
-        return this.evaluateIdentifierNode(node)
-      case NodeType.Unary:
-        return this.evaluateUnaryNode(node)
-      case NodeType.Binary:
-        return this.evaluateBinaryNode(node)
-      case NodeType.AccessProperty:
-        return this.evaluateAccessPropertyNode(node)
-      case NodeType.Indexing:
-        return this.evaluateIndexingNode(node)
-      case NodeType.Slicing:
-        return this.evaluateSlicingNode(node)
-      case NodeType.Invoke:
-        return this.evaluateInvokeNode(node)
-      default:
-        throw new RopEvaluationError(this.source, this.ast.span, `Unknown node type: ${(node as any).type}`)
+    try {
+      switch (node.type) {
+        case NodeType.Value:
+          return this.evaluateValueNode(node)
+        case NodeType.Identifier:
+          return this.evaluateIdentifierNode(node)
+        case NodeType.Unary:
+          return this.evaluateUnaryNode(node)
+        case NodeType.Binary:
+          return this.evaluateBinaryNode(node)
+        case NodeType.AccessProperty:
+          return this.evaluateAccessPropertyNode(node)
+        case NodeType.Indexing:
+          return this.evaluateIndexingNode(node)
+        case NodeType.Slicing:
+          return this.evaluateSlicingNode(node)
+        case NodeType.Invoke:
+          return this.evaluateInvokeNode(node)
+        default:
+          throw new RopEvaluationError(this.source, this.ast.span, `Unknown node type: ${(node as any).type}`)
+      }
+    } catch (error) {
+      if (error instanceof RopError) {
+        throw error
+      }
+      const message = error instanceof Error ? error.message : String(error)
+      throw new RopEvaluationError(this.source, node.span, message, { cause: error })
     }
   }
 
   private evaluateValueNode(node: ValueNode): any {
     const token = node.token as Token
     if (token.type === TokenType.Embedded) {
-      return (token as EmbeddedToken).value
+      const embedded = token as EmbeddedToken
+      return embedded.index === undefined ? embedded.value : this.embeddedValues[embedded.index]
     } else if (token.type === TokenType.Constant) {
       return (token as ConstantToken).value
     }
@@ -189,7 +199,7 @@ export class Evaluater {
       if (slice.end !== undefined || slice.step !== undefined) {
         throw new Error('Target does not support slicing with end or step')
       }
-      return target[this.calculateSlice(slice).start]
+      return target[this.calculateSlice(slice).start as PropertyKey]
     }
   }
 

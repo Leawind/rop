@@ -27,14 +27,16 @@ const BINARY_OPERATOR_NAMES = [
 export type UnaryOperationName = (typeof UNARY_OPERATOR_NAMES)[number]
 export type BinaryOperationName = (typeof BINARY_OPERATOR_NAMES)[number]
 export type ReverseBinaryOperationName = `r${BinaryOperationName}`
-const REVERSE_BINARY_OPERATOR_NAMES = BINARY_OPERATOR_NAMES.map((name) => `r${name}` as ReverseBinaryOperationName)
+const REVERSE_BINARY_OPERATOR_NAMES: ReverseBinaryOperationName[] = BINARY_OPERATOR_NAMES.map(
+  (name): ReverseBinaryOperationName => `r${name}`,
+)
 const OPERATOR_NAMES = ['[i]', '[:]', ...UNARY_OPERATOR_NAMES, ...BINARY_OPERATOR_NAMES, ...REVERSE_BINARY_OPERATOR_NAMES] as const
 export type OperationName = (typeof OPERATOR_NAMES)[number]
 
-export type UnaryOperationArrowFn<T = any, R = any> = ((self: T) => R) | (() => R)
-export type BinaryOperationArrowFn<T = any, R = any> = ((self: T, other: any) => R) | ((other: any) => R)
+export type UnaryOperationArrowFn<T = unknown, R = unknown> = (self: T) => R
+export type BinaryOperationArrowFn<T = unknown, R = unknown> = (self: T, other: any) => R
 export type OperationArrowFn<T = any, R = any> = (self: T, other?: any) => R
-export type OperationFn<R = any> = (...args: any[]) => R
+export type OperationFn<T = any, R = any> = (self: T, ...args: any[]) => R
 
 type PartialOperationMeta =
   | {
@@ -140,7 +142,7 @@ export class Operations {
    * @param op Operation name or symbol
    */
   public static isKnownOperation(op: string | symbol): boolean {
-    return op in OPERATION_REGISTRY
+    return Object.hasOwn(OPERATION_REGISTRY, op)
   }
 
   public static unaryFromLiteral(literal: string): UnaryOperationName | null {
@@ -161,7 +163,7 @@ export class Operations {
   public static meta(op: OperationName): OperationMeta
   public static meta(op: string | symbol): OperationMeta | null
   public static meta(op: string | symbol): OperationMeta | null {
-    return OPERATION_REGISTRY[op as OperationName] ?? null
+    return Object.hasOwn(OPERATION_REGISTRY, op) ? OPERATION_REGISTRY[op as OperationName] : null
   }
 
   /**
@@ -179,6 +181,6 @@ export class Operations {
    */
   public static symbol(op: string | symbol): symbol | null
   public static symbol(op: string | symbol): symbol | null {
-    return OPERATION_REGISTRY[op as OperationName]?.symbol ?? null
+    return Object.hasOwn(OPERATION_REGISTRY, op) ? OPERATION_REGISTRY[op as OperationName].symbol : null
   }
 }
