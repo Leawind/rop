@@ -46,6 +46,21 @@ Deno.test('Evaluater', async (t) => {
     assertFalse($eval`false || false`)
   })
 
+  await t.step('should short-circuit logical operators', () => {
+    let calls = 0
+    const sideEffect = () => {
+      calls++
+      return true
+    }
+
+    assertFalse($eval`false && ${sideEffect}()`)
+    assertStrictEquals(calls, 0)
+    assert($eval`true || ${sideEffect}()`)
+    assertStrictEquals(calls, 0)
+    assert($eval`true && ${sideEffect}()`)
+    assertStrictEquals(calls, 1)
+  })
+
   await t.step('should evaluate operator precedence', () => {
     assertStrictEquals($eval`1 + 2 * 3`, 7)
     assertStrictEquals($eval`(1 + 2) * 3`, 9)
@@ -59,6 +74,18 @@ Deno.test('Evaluater', async (t) => {
     assertStrictEquals($eval`${() => 3}()`, 3)
     assertStrictEquals($eval`min(1, 2)`, 1)
     assertStrictEquals($eval`max(1, 2, 3)`, 3)
+  })
+
+  await t.step('should preserve the receiver of method calls', () => {
+    const obj = {
+      value: 42,
+      getValue() {
+        return this.value
+      },
+    }
+
+    assertStrictEquals($eval`${obj}.getValue()`, 42)
+    assertStrictEquals($eval`${obj}['getValue']()`, 42)
   })
 
   await t.step('should evaluate array indexing', () => {

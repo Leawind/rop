@@ -344,26 +344,43 @@ export class Rop {
           throw new Error('Multi slice is not supported')
         }
         const slice = slices[0]
-        if (slice.step === 0) {
-          throw new Error('Slice step cannot be zero')
-        } else {
-          slice.step ??= 1
-          const result: unknown[] = []
-          if (slice.step > 0) {
-            slice.start = slice.start === undefined ? 0 : normalizeIndex(slice.start, this.length)
-            slice.end = slice.end === undefined ? this.length : normalizeIndex(slice.end, this.length)
-            for (let i = slice.start; i < slice.end; i += slice.step) {
-              result.push(this[i])
-            }
-          } else {
-            slice.start = slice.start === undefined ? this.length - 1 : normalizeIndex(slice.start, this.length)
-            slice.end = slice.end === undefined ? -1 : normalizeIndex(slice.end, this.length)
-            for (let i = slice.start; i > slice.end; i += slice.step) {
-              result.push(this[i])
-            }
+        const toInteger = (value: unknown, name: string): number => {
+          if (typeof value !== 'number' || !Number.isFinite(value) || !Number.isInteger(value)) {
+            throw new TypeError(`Slice ${name} must be a finite integer`)
           }
-          return result
+          return value
         }
+        const step = slice.step === undefined ? 1 : toInteger(slice.step, 'step')
+        if (step === 0) {
+          throw new Error('Slice step cannot be zero')
+        }
+
+        const clamp = (value: unknown, defaultValue: number, lower: number, upper: number): number => {
+          if (value === undefined) {
+            return defaultValue
+          }
+          let index = toInteger(value, 'bound')
+          if (index < 0) {
+            index += this.length
+          }
+          return Math.min(Math.max(index, lower), upper)
+        }
+
+        const result: unknown[] = []
+        if (step > 0) {
+          const start = clamp(slice.start, 0, 0, this.length)
+          const end = clamp(slice.end, this.length, 0, this.length)
+          for (let i = start; i < end; i += step) {
+            result.push(this[i])
+          }
+        } else {
+          const start = clamp(slice.start, this.length - 1, -1, this.length - 1)
+          const end = clamp(slice.end, -1, -1, this.length - 1)
+          for (let i = start; i > end; i += step) {
+            result.push(this[i])
+          }
+        }
+        return result
       },
     })
     this.overloads(String, { '*': (self: string, n: number) => self.repeat(n) })

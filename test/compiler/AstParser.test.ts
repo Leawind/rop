@@ -148,6 +148,10 @@ Deno.test('Parse invocation', async (t) => {
       AstFactory.invoke(AstFactory.identifier('max'), [AstFactory.constValue(3), AstFactory.constValue(5), AstFactory.constValue(2)]),
     )
   })
+  await t.step('should reject missing or repeated argument separators', () => {
+    assertThrows(() => $ast`max(1 2)`)
+    assertThrows(() => $ast`max(1,,2)`)
+  })
   await t.step('should parse nested invocation', () => {
     assertEquals(
       $ast`a(b(c()))`,
@@ -297,6 +301,12 @@ Deno.test('Parse array slicing', async (t) => {
         { start: AstFactory.slice(AstFactory.identifier('c'), [{}]) },
       ]),
     )
+  })
+
+  await t.step('should reject malformed slices', () => {
+    assertThrows(() => $ast`arr[:::]`)
+    assertThrows(() => $ast`arr[1 2]`)
+    assertThrows(() => $ast`arr[1,,2]`)
   })
 })
 

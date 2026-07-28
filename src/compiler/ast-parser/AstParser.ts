@@ -117,18 +117,27 @@ export class AstParser extends TokenWalker {
               this.consume()
 
               const args: AstNode[] = []
-              while (true) {
-                this.skipWhitespace()
-                if (this.tryConsumePunctuation(')')) {
-                  break
+              this.skipWhitespace()
+              if (!this.tryConsumePunctuation(')')) {
+                while (true) {
+                  args.push(this.parseExpression())
+                  this.skipWhitespace()
+
+                  if (this.tryConsumePunctuation(')')) {
+                    break
+                  }
+                  if (!this.tryConsumePunctuation(',')) {
+                    throw new Error("Expected ',' or ')' after function argument")
+                  }
+
+                  this.skipWhitespace()
+                  if (this.tryConsumePunctuation(')')) {
+                    break // Allow a trailing comma.
+                  }
+                  if (this.peekPunctuation(',')) {
+                    throw new Error('Expected expression after comma')
+                  }
                 }
-
-                const arg = this.parseExpression()
-                args.push(arg)
-
-                // ,
-                this.skipWhitespace()
-                this.tryConsumePunctuation(',')
               }
 
               left = { type: NodeType.Invoke, target: left, args }
@@ -150,74 +159,28 @@ export class AstParser extends TokenWalker {
 
               const slices: NodeSlice[] = []
               let isSlicing = false
-              let elementCount = 0
 
               while (true) {
-                this.skipWhitespace()
-
-                // parse slice
-                const slice = ((): NodeSlice | null => {
-                  const willBeExpression = (): boolean => {
-                    const p = this.peek()
-                    return !(
-                      p !== null
-                      && p.type === TokenType.Punctuation
-                      && (p.literal === ']' || p.literal === ',' || p.literal === ':')
-                    )
-                  }
-
-                  /**
-                   * If next token is `]`, `,` or `:`, return null. Otherwise, parse expression.
-                   */
-                  const tryParseExpressionInSlice = (): AstNode | null => {
-                    return willBeExpression() ? this.parseExpression() : null
-                  }
-
-                  const slice: (AstNode | undefined)[] = []
-                  let colons = 0
-                  let hasExpression = false
-
-                  while (true) {
-                    if (this.peekPunctuation(',') || this.peekPunctuation(']')) {
-                      break
-                    }
-                    if (this.peekPunctuation(':')) {
-                      this.consume()
-                      colons++
-                      isSlicing = true
-                    } else {
-                      const s = tryParseExpressionInSlice()
-                      if (s !== null) {
-                        slice[colons] = s
-                        hasExpression = true
-                      }
-                    }
-                  }
-
-                  // If we have at least one expression or colons, it's a valid slice
-                  if (hasExpression || colons > 0) {
-                    elementCount++
-                    return { start: slice[0], end: slice[1], step: slice[2] }
-                  }
-
-                  return null
-                })()
-
-                if (slice !== null) {
-                  slices.push(slice)
-                }
+                const { slice, hasColon } = this.parseSliceDimension()
+                slices.push(slice)
+                isSlicing ||= hasColon
 
                 this.skipWhitespace()
-                if (this.tryConsumePunctuation(',')) {
-                  isSlicing = true // Multiple elements indicate slicing
-                } else if (this.tryConsumePunctuation(']')) {
+                if (this.tryConsumePunctuation(']')) {
                   break
                 }
-              }
+                if (!this.tryConsumePunctuation(',')) {
+                  throw new Error("Expected ',' or ']' after subscript")
+                }
+                isSlicing = true
 
-              // If no slices were parsed, it's an error
-              if (elementCount === 0) {
-                throw new Error('Empty indexing or slicing expression')
+                this.skipWhitespace()
+                if (this.tryConsumePunctuation(']')) {
+                  break // Allow a trailing comma.
+                }
+                if (this.peekPunctuation(',')) {
+                  throw new Error('Expected subscript after comma')
+                }
               }
 
               // Determine if it's indexing or slicing
@@ -298,6 +261,42 @@ export class AstParser extends TokenWalker {
       default:
         throw new Error(`Unknown token type: ${token}`)
     }
+  }
+
+  private parseSliceDimension(): { slice: NodeSlice; hasColon: boolean } {
+    this.skipWhitespace()
+    const slice: NodeSlice = { start: undefined, end: undefined, step: undefined }
+
+    if (!this.peekPunctuation(':') && !this.peekPunctuation(',') && !this.peekPunctuation(']')) {
+      slice.start = this.parseExpression()
+      this.skipWhitespace()
+    }
+
+    if (!this.tryConsumePunctuation(':')) {
+      if (slice.start === undefined) {
+        throw new Error('Expected subscript expression')
+      }
+      return { slice, hasColon: false }
+    }
+
+    this.skipWhitespace()
+    if (!this.peekPunctuation(':') && !this.peekPunctuation(',') && !this.peekPunctuation(']')) {
+      slice.end = this.parseExpression()
+      this.skipWhitespace()
+    }
+
+    if (this.tryConsumePunctuation(':')) {
+      this.skipWhitespace()
+      if (!this.peekPunctuation(',') && !this.peekPunctuation(']')) {
+        slice.step = this.parseExpression()
+        this.skipWhitespace()
+      }
+    }
+
+    if (this.peekPunctuation(':')) {
+      throw new Error('A slice can contain at most two colons')
+    }
+    return { slice, hasColon: true }
   }
 
   private peekPunctuation(literal?: string): PunctuationToken | null {

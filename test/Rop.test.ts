@@ -110,5 +110,19 @@ Deno.test('Rop builtin test', async (t) => {
       assertEquals(rop.o<number[]>`arr[6:2:-1]`, [7, 6, 5, 4])
       assertEquals(rop.o<number[]>`arr[-2:3:-1]`, [7, 6, 5])
     })
+
+    await t.step('should clamp out-of-range slice bounds', () => {
+      assertEquals(rop.o<number[]>`arr[-99:99]`, [1, 2, 3, 4, 5, 6, 7, 8])
+      assertEquals(rop.o<number[]>`arr[99:-99:-1]`, [8, 7, 6, 5, 4, 3, 2, 1])
+      assertEquals(rop.o<number[]>`arr[-99:99:-1]`, [])
+      assertEquals(rop.o<number[]>`arr[99:-99]`, [])
+    })
+
+    await t.step('should reject invalid slice components', () => {
+      assertThrows(() => rop.o`arr[::1.5]`)
+      assertThrows(() => rop.o`arr[::${Number.NaN}]`)
+      assertThrows(() => rop.o`arr[::${Infinity}]`)
+      assertThrows(() => rop.o`arr[::'1']`)
+    })
   })
 })

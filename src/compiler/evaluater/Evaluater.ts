@@ -101,8 +101,6 @@ export class Evaluater {
 
   private evaluateBinaryNode(node: BinaryNode): any {
     const leftValue = this.evaluateNode(node.left)
-    const rightValue = this.evaluateNode(node.right)
-
     const meta = Operations.meta(node.operation)
     if (meta.type !== 'binary') {
       throw new Error(`Invalid node: ${node}`)
@@ -110,8 +108,20 @@ export class Evaluater {
 
     const leftOverload = this.rop.getOverloadOnInstance(leftValue, meta.symbol)
     if (typeof leftOverload === 'function') {
+      const rightValue = this.evaluateNode(node.right)
       return leftOverload.call(leftValue, rightValue)
     }
+
+    // Preserve JavaScript's lazy evaluation when the left operand does not
+    // provide an overload that needs to receive the right operand.
+    if (node.operation === '&&' && !leftValue) {
+      return leftValue
+    }
+    if (node.operation === '||' && leftValue) {
+      return leftValue
+    }
+
+    const rightValue = this.evaluateNode(node.right)
 
     const rightOverload = this.rop.getOverloadOnInstance(rightValue, meta.symbol)
     if (typeof rightOverload === 'function') {
@@ -127,14 +137,27 @@ export class Evaluater {
   }
 
   private evaluateInvokeNode(node: InvokeNode): any {
-    const target = this.evaluateNode(node.target)
+    let target: any
+    let receiver: any = undefined
+
+    if (node.target.type === NodeType.AccessProperty) {
+      receiver = this.evaluateNode(node.target.left)
+      target = receiver[node.target.name]
+    } else if (node.target.type === NodeType.Indexing) {
+      receiver = this.evaluateNode(node.target.target)
+      const index = this.evaluateNode(node.target.index)
+      const indexing = this.rop.getOverloadOnInstance(receiver, Operations.symbol('[i]'))
+      target = typeof indexing === 'function' ? indexing.call(receiver, index) : receiver[index]
+    } else {
+      target = this.evaluateNode(node.target)
+    }
     const args = node.args.map((arg) => this.evaluateNode(arg))
 
     if (typeof target !== 'function') {
       throw new Error(`Cannot invoke non-function: ${typeof target}`)
     }
 
-    return target(...args)
+    return Reflect.apply(target, receiver, args)
   }
 
   private evaluateIndexingNode(node: IndexingNode): any {
